@@ -125,5 +125,63 @@ export function ligarMascaras(raiz) {
     if (!aplicar || input.dataset.mascaraLigada) return;
     input.addEventListener('input', () => { input.value = aplicar(input.value); });
     input.dataset.mascaraLigada = '1';
+    if (input.dataset.mascara === 'cep') ligarBuscaCep(input);
+  });
+}
+
+// Ao completar o CEP, busca rua, bairro, cidade e UF no ViaCEP (serviço público e gratuito).
+function ligarBuscaCep(input) {
+  const form = input.form;
+  const bloco = input.closest('.campo');
+  const soDigitos = (v) => String(v ?? '').replace(/\D/g, '');
+  let ultimoBuscado = soDigitos(input.value);
+
+  let situacao = bloco?.querySelector('.info-campo');
+  if (bloco && !situacao) {
+    situacao = document.createElement('small');
+    situacao.className = 'info-campo';
+    situacao.hidden = true;
+    bloco.appendChild(situacao);
+  }
+  const mostrar = (texto, erro = false) => {
+    if (!situacao) return;
+    situacao.textContent = texto;
+    situacao.classList.toggle('erro', erro);
+    situacao.hidden = !texto;
+  };
+  const preencher = (nome, valor) => {
+    const campo = form?.elements.namedItem(nome);
+    if (campo && valor) campo.value = valor;
+  };
+
+  input.addEventListener('input', async () => {
+    const cep = soDigitos(input.value);
+    if (cep.length < 8) {
+      ultimoBuscado = '';
+      mostrar('');
+      return;
+    }
+    if (cep === ultimoBuscado) return;
+    ultimoBuscado = cep;
+    mostrar('Buscando endereço…');
+
+    try {
+      const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const dados = await resposta.json();
+      if (soDigitos(input.value) !== cep) return; // o CEP mudou enquanto buscava
+      if (!resposta.ok || dados.erro) {
+        mostrar('CEP não encontrado. Preencha o endereço à mão.', true);
+        return;
+      }
+      preencher('logradouro', dados.logradouro);
+      preencher('bairro', dados.bairro);
+      preencher('cidade', dados.localidade);
+      preencher('uf', dados.uf);
+      mostrar('');
+      // CEP de rua: pula para o número. CEP geral da cidade: pula para a rua.
+      form?.elements.namedItem(dados.logradouro ? 'numero' : 'logradouro')?.focus();
+    } catch {
+      mostrar('Não foi possível buscar o CEP agora. Preencha o endereço à mão.', true);
+    }
   });
 }
