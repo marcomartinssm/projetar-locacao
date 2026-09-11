@@ -1,0 +1,206 @@
+// Funções de apoio: formatação, validação, ícones, avisos.
+
+export const esc = (v) =>
+  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+export const digitos = (v) => String(v ?? '').replace(/\D/g, '');
+
+// ---------- formatação para exibir ----------
+export function formatarCpfCnpj(v) {
+  const d = digitos(v);
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return v ?? '';
+}
+
+export function formatarTelefone(v) {
+  const d = digitos(v);
+  if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  return v ?? '';
+}
+
+export function formatarCep(v) {
+  const d = digitos(v);
+  return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : (v ?? '');
+}
+
+export function formatarData(iso) {
+  if (!iso) return '';
+  const [a, m, d] = String(iso).slice(0, 10).split('-');
+  return `${d}/${m}/${a}`;
+}
+
+// ---------- máscaras enquanto digita ----------
+export function aplicarMascaraTelefone(v) {
+  const d = digitos(v).slice(0, 11);
+  if (d.length === 0) return '';
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+export function aplicarMascaraCpfCnpj(v) {
+  const d = digitos(v).slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+  return d
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+export function aplicarMascaraCep(v) {
+  const d = digitos(v).slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
+
+// ---------- validação ----------
+export function cpfCnpjValido(v) {
+  const d = digitos(v);
+  const n = [...d].map(Number);
+  if (d.length === 11) {
+    if (/^(\d)\1{10}$/.test(d)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += n[i] * (10 - i);
+    let resto = (soma * 10) % 11;
+    if (resto === 10) resto = 0;
+    if (resto !== n[9]) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += n[i] * (11 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10) resto = 0;
+    return resto === n[10];
+  }
+  if (d.length === 14) {
+    if (/^(\d)\1{13}$/.test(d)) return false;
+    const digito = (tamanho) => {
+      const pesos = tamanho === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+      let soma = 0;
+      for (let i = 0; i < tamanho; i++) soma += n[i] * pesos[i];
+      const resto = soma % 11;
+      return resto < 2 ? 0 : 11 - resto;
+    };
+    return digito(12) === n[12] && digito(13) === n[13];
+  }
+  return false;
+}
+
+export const emailValido = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v ?? ''));
+
+// ---------- textos ----------
+export function iniciais(texto) {
+  const partes = String(texto || '').split(/[\s@._-]+/).filter((p) => p && !/^(de|da|do|das|dos|e)$/i.test(p));
+  if (!partes.length) return '?';
+  return ((partes[0][0] || '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
+}
+
+export function listaTexto(itens) {
+  if (itens.length <= 1) return itens.join('');
+  return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
+}
+
+export function mensagemErro(error) {
+  if (!error) return 'Algo deu errado. Tente de novo.';
+  const texto = `${error.message || ''} ${error.details || ''}`;
+  if (error.code === '23505') {
+    if (/principal/.test(texto)) return 'Já existe outro item marcado como principal.';
+    if (/telefone/.test(texto)) return 'Esse telefone já pertence a outro cliente.';
+    if (/email/.test(texto)) return 'Esse e-mail já pertence a outro cliente.';
+    if (/cpf_cnpj/.test(texto)) return 'Esse CPF/CNPJ já pertence a outro cliente.';
+    return 'Esse dado já existe em outro cadastro.';
+  }
+  if (error.code === '23514') {
+    if (/cpf_cnpj/.test(texto)) return 'CPF/CNPJ inválido. Confira os números.';
+    if (/telefone/.test(texto)) return 'Telefone inválido. Use DDD + número.';
+    if (/email/.test(texto)) return 'E-mail inválido.';
+    return 'Algum dado está em formato inválido.';
+  }
+  if (error.code === '42501') return 'Você não tem permissão para fazer isso.';
+  if (error.code === 'P0001' && error.message) return error.message;
+  return error.message || 'Algo deu errado. Tente de novo.';
+}
+
+let temporizadorToast;
+export function toast(mensagem, tipo = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = mensagem;
+  el.className = `toast ${tipo === 'erro' ? 'erro' : ''}`;
+  el.hidden = false;
+  clearTimeout(temporizadorToast);
+  temporizadorToast = setTimeout(() => { el.hidden = true; }, tipo === 'erro' ? 6000 : 3000);
+}
+
+// ---------- listas fixas ----------
+export const REL_ROTULO = {
+  locador: 'Locador',
+  locatario: 'Locatário',
+  locatario_solidario: 'Solidário',
+  fiador: 'Fiador',
+  lead: 'Lead',
+  comprador: 'Comprador',
+  vendedor: 'Vendedor',
+  fornecedor: 'Fornecedor',
+  parceiro: 'Parceiro',
+};
+
+export const REL_FILTROS = [
+  ['', 'Todos'],
+  ['locador', 'Locadores'],
+  ['locatario', 'Locatários'],
+  ['locatario_solidario', 'Solidários'],
+  ['fiador', 'Fiadores'],
+  ['lead', 'Leads'],
+  ['comprador', 'Compradores'],
+  ['vendedor', 'Vendedores'],
+  ['fornecedor', 'Fornecedores'],
+  ['parceiro', 'Parceiros'],
+];
+
+const REL_LOCACAO = new Set(['locador', 'locatario', 'locatario_solidario', 'fiador']);
+export const chipRel = (tipo) => `<span class="rel ${REL_LOCACAO.has(tipo) ? 'loc' : ''}">${esc(REL_ROTULO[tipo] ?? tipo)}</span>`;
+
+export const ESTADOS_CIVIS = [
+  ['solteiro', 'Solteiro(a)'],
+  ['casado', 'Casado(a)'],
+  ['uniao_estavel', 'União estável'],
+  ['divorciado', 'Divorciado(a)'],
+  ['separado', 'Separado(a)'],
+  ['viuvo', 'Viúvo(a)'],
+];
+
+export const TIPOS_TELEFONE = [['celular', 'Celular'], ['fixo', 'Fixo'], ['comercial', 'Comercial']];
+
+export const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
+
+// ---------- ícones (traço, 24px) ----------
+const ICONES = {
+  search: '<circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>',
+  plus: '<path d="M12 5v14"></path><path d="M5 12h14"></path>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+  home: '<path d="M3 10.5L12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path>',
+  contract: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"></path><path d="M14 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h6"></path>',
+  wallet: '<rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path><path d="M16 15h2"></path>',
+  phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"></path>',
+  whatsapp: '<path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"></path>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path>',
+  edit: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path>',
+  trash: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path>',
+  star: '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"></path>',
+  chevronRight: '<path d="M9 6l6 6-6 6"></path>',
+  chevronLeft: '<path d="M15 6l-6 6 6 6"></path>',
+  arrowUpRight: '<path d="M7 17L17 7"></path><path d="M8 7h9v9"></path>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"></path>',
+  alert: '<path d="M12 3.5l9.5 16.5h-19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path>',
+};
+
+export const icone = (nome, tamanho = 16) =>
+  `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[nome] ?? ''}</svg>`;
+
+export const badgePrincipal = `<span class="badge-principal">${icone('star', 11)}Principal</span>`;
