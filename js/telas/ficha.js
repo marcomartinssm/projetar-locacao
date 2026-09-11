@@ -9,6 +9,7 @@ import {
   campo, select, campoTexto, camposIdentificacao, camposEndereco, lerCampos, limparErros,
   mostrarErros, mostrarErroForm, ligarMascaras, CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
 } from '../formulario.js';
+import { ligarBuscaCnpj, preencherVazios } from '../consultas.js';
 
 const ABAS = [
   ['dados', 'Dados', true],
@@ -152,6 +153,7 @@ function renderEditarDados(caixa, ficha) {
 
   const form = caixa.querySelector('#form-dados');
   ligarMascaras(form);
+  if (pj) ligarBuscaCnpj(form.elements.namedItem('cpf_cnpj'), (empresa) => preencherVazios(form, empresa));
   form.elements.namedItem('nome').focus();
   form.querySelector('[data-acao="cancelar"]').addEventListener('click', voltar);
 

@@ -9,6 +9,7 @@ import {
   campo, select, campoTexto, camposIdentificacao, camposEndereco, lerCampos,
   limparErros, mostrarErros, mostrarErroForm, ligarMascaras, CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
 } from '../formulario.js';
+import { buscarCnpj, ligarBuscaCnpj, preencherVazios, textoSituacao } from '../consultas.js';
 
 const MOTIVO = {
   telefone: { artigo: 'o telefone', rotulo: 'telefone' },
@@ -20,7 +21,7 @@ const MOTIVO = {
 let rascunho = rascunhoVazio();
 
 function rascunhoVazio() {
-  return { tipo_pessoa: 'PF', telefone: '', nome: '', email: '', cpf_cnpj: '' };
+  return { tipo_pessoa: 'PF', telefone: '', nome: '', email: '', cpf_cnpj: '', empresa: null };
 }
 
 export function telaNovo(el) {
@@ -56,7 +57,7 @@ function etapaVerificar(el) {
         <dl>
           <dt>Telefone</dt><dd>Verificação principal. Se já pertence a outro cliente, só dá para usar o cadastro existente.</dd>
           <dt>E-mail</dt><dd>Se já pertence a outro cliente, só dá para usar o cadastro existente.</dd>
-          <dt>${doc}</dt><dd>Se é válido e se já existe. Se existir, só dá para usar o cadastro existente.</dd>
+          <dt>${doc}</dt><dd>Se é válido e se já existe. Se existir, só dá para usar o cadastro existente.${pj ? ' Com o CNPJ, os dados da empresa vêm da Receita.' : ''}</dd>
           <dt>Nome</dt><dd>Se há clientes com nome parecido. É só um aviso.</dd>
         </dl>
       </div>
@@ -67,6 +68,13 @@ function etapaVerificar(el) {
   const form = el.querySelector('#form-verificar');
   ligarMascaras(form);
   form.elements.namedItem('telefone').focus();
+
+  if (pj) {
+    ligarBuscaCnpj(form.elements.namedItem('cpf_cnpj'), (empresa) => {
+      rascunho.empresa = empresa;
+      preencherVazios(form, empresa, ['nome']);
+    });
+  }
 
   const guardar = () => {
     for (const nome of ['telefone', 'nome', 'email', 'cpf_cnpj']) rascunho[nome] = form.elements.namedItem(nome).value;
@@ -219,6 +227,8 @@ function etapaCadastro(el) {
         <button type="button" class="btn btn-secundario btn-peq" data-acao="alterar">${icone('edit', 14)}<span>Alterar</span></button>
       </div>
 
+      <div class="aviso" id="dados-receita" hidden></div>
+
       <h2 class="h-secao">${pj ? 'Empresa' : 'Identificação'}</h2>
       ${camposIdentificacao(pj, { nome: rascunho.nome, nacionalidade: pj ? null : 'Brasileira' })}
 
@@ -242,6 +252,7 @@ function etapaCadastro(el) {
 
   const form = el.querySelector('#form-cadastro');
   ligarMascaras(form);
+  if (pj && documento) completarComReceita(form, documento);
 
   form.querySelector('[data-acao="alterar"]').addEventListener('click', () => {
     rascunho.nome = form.elements.namedItem('nome').value;
@@ -282,4 +293,40 @@ function etapaCadastro(el) {
     toast('Cliente cadastrado.');
     location.hash = `#/clientes/${data}`;
   });
+}
+
+// Empresa com CNPJ: preenche os campos vazios com os dados da Receita e mostra a situação.
+async function completarComReceita(form, cnpj) {
+  const caixa = form.querySelector('#dados-receita');
+  const mostrar = (tom, ic, titulo, texto = '') => {
+    caixa.className = `aviso ${tom}`;
+    caixa.innerHTML = `${icone(ic, 20)}<div><strong>${titulo}</strong>${texto ? `<p>${esc(texto)}</p>` : ''}</div>`;
+    caixa.hidden = false;
+  };
+
+  let empresa = rascunho.empresa?.cnpj === cnpj ? rascunho.empresa : null;
+  if (!empresa) {
+    mostrar('neutro', 'search', 'Buscando dados do CNPJ na Receita…');
+    try {
+      empresa = await buscarCnpj(cnpj);
+    } catch {
+      if (form.isConnected) mostrar('dourado', 'alert', 'Não foi possível consultar o CNPJ agora', 'Preencha os dados da empresa à mão.');
+      return;
+    }
+    if (!form.isConnected) return;
+    if (!empresa) {
+      mostrar('dourado', 'alert', 'CNPJ não encontrado na Receita', 'Preencha os dados da empresa à mão.');
+      return;
+    }
+    rascunho.empresa = empresa;
+  }
+
+  preencherVazios(form, empresa);
+  const ativa = empresa.situacao === 'ATIVA';
+  mostrar(
+    ativa ? 'verde' : 'dourado',
+    ativa ? 'check' : 'alert',
+    ativa ? 'Dados preenchidos com a Receita Federal' : 'Atenção à situação da empresa',
+    `${textoSituacao(empresa)} Confira os campos antes de salvar.`,
+  );
 }

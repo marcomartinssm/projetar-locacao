@@ -176,6 +176,10 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 .aviso.vinho > svg, .aviso.vinho strong { color: var(--vinho-escuro); }
 .aviso.dourado { background: var(--ouro-palido); border-color: #ead9b8; }
 .aviso.dourado > svg, .aviso.dourado strong { color: var(--ouro-escuro); }
+.aviso.verde { background: var(--ok-palido); border-color: #cfe6d7; }
+.aviso.verde > svg, .aviso.verde strong { color: var(--ok); }
+.aviso.neutro { background: var(--fundo); border-color: var(--borda); }
+.aviso.neutro > svg, .aviso.neutro strong { color: var(--apagado); }
 .lista-pessoas { display: flex; flex-direction: column; gap: 12px; }
 .pessoa { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--branco); }
 .pessoa-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
