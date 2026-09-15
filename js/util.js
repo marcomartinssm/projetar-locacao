@@ -204,3 +204,42 @@ export const icone = (nome, tamanho = 16) =>
   `<svg width="${tamanho}" height="${tamanho}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[nome] ?? ''}</svg>`;
 
 export const badgePrincipal = `<span class="badge-principal">${icone('star', 11)}Principal</span>`;
+
+// ---------- valores em reais e percentuais ----------
+const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+export const formatarMoeda = (v) => (v == null || v === '' ? '' : MOEDA.format(Number(v)));
+
+export const formatarNumeroBR = (v, casas = 2) =>
+  (v == null || v === '' ? '' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }));
+
+// "R$ 2.200,50", "2.200", "10%" ou "2200.5" → número (null se vazio ou inválido)
+export function lerNumeroBR(texto) {
+  const limpo = String(texto ?? '').replace(/[R$\s%]/g, '');
+  if (!limpo) return null;
+  let normal = limpo;
+  if (limpo.includes(',')) normal = limpo.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(limpo)) normal = limpo.replace(/\./g, '');
+  const n = Number(normal);
+  return Number.isFinite(n) ? n : null;
+}
+
+// ---------- listas do imóvel ----------
+export const TIPOS_IMOVEL = [
+  ['apartamento', 'Apartamento'], ['casa', 'Casa'], ['sobrado', 'Sobrado'], ['kitnet', 'Kitnet'],
+  ['cobertura', 'Cobertura'], ['sala_comercial', 'Sala comercial'], ['loja', 'Loja'], ['galpao', 'Galpão'],
+  ['terreno', 'Terreno'], ['chacara', 'Chácara'], ['box_garagem', 'Box de garagem'], ['outro', 'Outro'],
+];
+export const SITUACOES_IMOVEL = [['disponivel', 'Disponível'], ['alugado', 'Alugado'], ['indisponivel', 'Indisponível'], ['inativo', 'Inativo']];
+export const DESTINACOES = [['residencial', 'Residencial'], ['nao_residencial', 'Não residencial']];
+export const CHAVES_LOCAL = [['imobiliaria', 'Imobiliária'], ['proprietario', 'Proprietário'], ['outro', 'Outro']];
+export const TIPOS_DIMOB = [['urbano', 'Urbano'], ['rural', 'Rural']];
+
+// Texto de uma opção da lista: rotulo(TIPOS_IMOVEL, 'galpao') → "Galpão"
+export const rotulo = (lista, valor) => (lista.find(([v]) => v === valor) || [null, valor ?? ''])[1];
+
+Object.assign(ICONES, {
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 16l-5-5-9 9"></path>',
+  paw: '<circle cx="11" cy="4" r="2"></circle><circle cx="18" cy="8" r="2"></circle><circle cx="4" cy="8" r="2"></circle><path d="M12 11c-3 0-6 4-6 7a3 3 0 0 0 3 3c1.2 0 2-.7 3-.7s1.8.7 3 .7a3 3 0 0 0 3-3c0-3-3-7-6-7z"></path>',
+  globe: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path>',
+  megaphone: '<path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z"></path><path d="M17 9a3 3 0 0 1 0 6"></path>',
+});

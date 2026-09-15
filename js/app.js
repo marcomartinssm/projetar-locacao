@@ -1,11 +1,15 @@
 // Sistema de Gestão de Locação · Projetar Imóveis
 // Rotas: #/clientes · #/clientes/novo · #/clientes/<id>/<aba>
+//        #/imoveis  · #/imoveis/novo  · #/imoveis/<id>/<aba>
 
 import { sb } from './supabase.js';
 import { esc, icone, iniciais } from './util.js';
 import { telaLista } from './telas/lista.js';
 import { telaNovo } from './telas/novo.js';
 import { telaFicha } from './telas/ficha.js';
+import { telaImoveisLista } from './telas/imoveis-lista.js';
+import { telaImovelNovo } from './telas/imoveis-novo.js';
+import { telaImovelFicha } from './telas/imoveis-ficha.js';
 
 const app = document.getElementById('app');
 let sessao = null;
@@ -13,7 +17,7 @@ let temAcesso = false;
 
 const MENU = [
   ['Clientes', 'users', '#/clientes'],
-  ['Imóveis', 'home', null],
+  ['Imóveis', 'home', '#/imoveis'],
   ['Contratos', 'contract', null],
   ['Financeiro', 'wallet', null],
 ];
@@ -115,9 +119,19 @@ function rotear() {
   if (!temAcesso) return telaSemAcesso();
 
   const hash = location.hash || '#/clientes';
+
+  if (hash.startsWith('#/imoveis')) {
+    const conteudo = montarLayout('Imóveis');
+    window.scrollTo(0, 0);
+    if (hash === '#/imoveis/novo') return telaImovelNovo(conteudo);
+    const ficha = hash.match(/^#\/imoveis\/([0-9a-f-]{36})(?:\/([a-z]+))?$/);
+    if (ficha) return telaImovelFicha(conteudo, ficha[1], ficha[2] || 'dados');
+    if (hash !== '#/imoveis') history.replaceState(null, '', '#/imoveis');
+    return telaImoveisLista(conteudo);
+  }
+
   const conteudo = montarLayout('Clientes');
   window.scrollTo(0, 0);
-
   if (hash === '#/clientes/novo') return telaNovo(conteudo);
   const ficha = hash.match(/^#\/clientes\/([0-9a-f-]{36})(?:\/([a-z]+))?$/);
   if (ficha) return telaFicha(conteudo, ficha[1], ficha[2] || 'dados');
