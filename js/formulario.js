@@ -126,6 +126,53 @@ export function ligarMascaras(raiz) {
     input.addEventListener('input', () => { input.value = aplicar(input.value); });
     input.dataset.mascaraLigada = '1';
     if (input.dataset.mascara === 'cep') ligarBuscaCep(input);
+    if (input.dataset.mascara === 'telefone') ligarAvisoWhatsapp(input);
+  });
+}
+
+// Ao completar o telefone, confere se o número tem WhatsApp.
+// Se a consulta não estiver configurada ou estiver fora do ar, nada aparece.
+function ligarAvisoWhatsapp(input) {
+  const bloco = input.closest('.campo');
+  if (!bloco) return;
+
+  let aviso = bloco.querySelector('.aviso-whatsapp');
+  if (!aviso) {
+    aviso = document.createElement('small');
+    aviso.className = 'aviso-whatsapp';
+    aviso.hidden = true;
+    bloco.appendChild(aviso);
+  }
+  const mostrar = (texto, classe = '') => {
+    aviso.textContent = texto;
+    aviso.className = `aviso-whatsapp ${classe}`;
+    aviso.hidden = !texto;
+  };
+
+  const soDigitos = (v) => String(v ?? '').replace(/\D/g, '');
+  let ultimoConferido = '';
+  let espera;
+
+  input.addEventListener('input', () => {
+    clearTimeout(espera);
+    const numero = soDigitos(input.value);
+    if (numero.length < 10 || numero.length > 11) {
+      ultimoConferido = '';
+      mostrar('');
+      return;
+    }
+    if (numero === ultimoConferido) return;
+    ultimoConferido = numero;
+    mostrar('Conferindo WhatsApp…', 'neutro');
+
+    espera = setTimeout(async () => {
+      const { conferirWhatsapp } = await import('./whatsapp.js');
+      const existe = await conferirWhatsapp(numero);
+      if (soDigitos(input.value) !== numero) return; // o número mudou enquanto conferia
+      if (existe === null) mostrar('');
+      else if (existe) mostrar('Tem WhatsApp', 'ok');
+      else mostrar('Não encontrado no WhatsApp', 'atencao');
+    }, 600);
   });
 }
 

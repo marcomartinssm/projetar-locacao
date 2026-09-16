@@ -113,6 +113,10 @@ h1 { font-size: 24px; font-weight: 700; text-wrap: balance; }
 .erro-campo { font-size: 12px; color: var(--erro); }
 .info-campo { font-size: 12px; color: var(--apagado); }
 .info-campo.erro { color: var(--erro); }
+.aviso-whatsapp { font-size: 12px; font-weight: 600; }
+.aviso-whatsapp.ok { color: var(--ok); }
+.aviso-whatsapp.atencao { color: var(--ouro-escuro); }
+.aviso-whatsapp.neutro { color: var(--apagado); font-weight: 500; }
 .erro-form { padding: 12px 14px; border-radius: var(--raio); background: var(--erro-palido); color: var(--erro); font-size: 13px; font-weight: 600; }
 .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--vinho); }
