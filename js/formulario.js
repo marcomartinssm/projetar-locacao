@@ -167,11 +167,10 @@ function ligarAvisoWhatsapp(input) {
 
     espera = setTimeout(async () => {
       const { conferirWhatsapp } = await import('./whatsapp.js');
-      const existe = await conferirWhatsapp(numero);
+      const resultado = await conferirWhatsapp(numero);
       if (soDigitos(input.value) !== numero) return; // o número mudou enquanto conferia
-      if (existe === null) mostrar('');
-      else if (existe) mostrar('Tem WhatsApp', 'ok');
-      else mostrar('Não encontrado no WhatsApp', 'atencao');
+      if (!resultado) mostrar('');
+      else mostrar(resultado.texto, resultado.tom);
     }, 600);
   });
 }
