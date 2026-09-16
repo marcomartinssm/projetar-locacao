@@ -278,6 +278,9 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 .resultado-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .resultado-info small { font-size: 12px; color: var(--apagado); }
 .busca-cliente-rodape { font-size: 12px; color: var(--apagado); }
+.cadastro-rapido .form-inline { margin: 0; }
+.cadastro-rapido .verificacao:empty { display: none; }
+.cadastro-rapido .verificacao { display: flex; flex-direction: column; gap: 12px; }
 .avatar.pequeno { width: 34px; height: 34px; font-size: 12px; }
 
 .prop-lista { display: flex; flex-direction: column; gap: 10px; }
