@@ -153,11 +153,18 @@ function ligarAvisoWhatsapp(input) {
   let ultimoConferido = '';
   let espera;
 
+  // A marcação "é WhatsApp" do formulário é preenchida pela conferência, não à mão.
+  const marcacao = () => {
+    const campo = input.form?.elements?.namedItem('whatsapp') ?? input.form?.elements?.namedItem('telefone_whatsapp');
+    return campo && campo.type === 'checkbox' ? campo : null;
+  };
+
   input.addEventListener('input', () => {
     clearTimeout(espera);
     const numero = soDigitos(input.value);
     if (numero.length < 10 || numero.length > 11) {
       ultimoConferido = '';
+      input.dataset.whatsapp = '';
       mostrar('');
       return;
     }
@@ -169,8 +176,21 @@ function ligarAvisoWhatsapp(input) {
       const { conferirWhatsapp } = await import('./whatsapp.js');
       const resultado = await conferirWhatsapp(numero);
       if (soDigitos(input.value) !== numero) return; // o número mudou enquanto conferia
-      if (!resultado) mostrar('');
-      else mostrar(resultado.texto, resultado.tom);
+
+      const marca = marcacao();
+      if (!resultado) {
+        // Não deu para conferir: libera a marcação à mão.
+        input.dataset.whatsapp = '';
+        if (marca) marca.disabled = false;
+        mostrar('');
+        return;
+      }
+      input.dataset.whatsapp = resultado.existe ? '1' : '0';
+      if (marca) {
+        marca.checked = resultado.existe;
+        marca.disabled = true;
+      }
+      mostrar(resultado.texto, resultado.tom);
     }, 600);
   });
 }

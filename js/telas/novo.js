@@ -21,7 +21,7 @@ const MOTIVO = {
 let rascunho = rascunhoVazio();
 
 function rascunhoVazio() {
-  return { tipo_pessoa: 'PF', telefone: '', nome: '', email: '', cpf_cnpj: '', empresa: null };
+  return { tipo_pessoa: 'PF', telefone: '', nome: '', email: '', cpf_cnpj: '', empresa: null, whatsapp: null };
 }
 
 export function telaNovo(el) {
@@ -55,7 +55,7 @@ function etapaVerificar(el) {
       <div class="caixa-regras">
         <strong>O que o sistema confere</strong>
         <dl>
-          <dt>Telefone</dt><dd>Verificação principal. Se já pertence a outro cliente, só dá para usar o cadastro existente.</dd>
+          <dt>Telefone</dt><dd>Verificação principal. Se já pertence a outro cliente, só dá para usar o cadastro existente. O sistema também confere sozinho se o número tem WhatsApp.</dd>
           <dt>E-mail</dt><dd>Se já pertence a outro cliente, só dá para usar o cadastro existente.</dd>
           <dt>${doc}</dt><dd>Se é válido e se já existe. Se existir, só dá para usar o cadastro existente.${pj ? ' Com o CNPJ, os dados da empresa vêm da Receita.' : ''}</dd>
           <dt>Nome</dt><dd>Se há clientes com nome parecido. É só um aviso.</dd>
@@ -78,6 +78,9 @@ function etapaVerificar(el) {
 
   const guardar = () => {
     for (const nome of ['telefone', 'nome', 'email', 'cpf_cnpj']) rascunho[nome] = form.elements.namedItem(nome).value;
+    // resultado da conferência automática de WhatsApp (vazio = não deu para conferir)
+    const marca = form.elements.namedItem('telefone').dataset.whatsapp;
+    rascunho.whatsapp = marca === '1' ? true : marca === '0' ? false : null;
   };
 
   form.querySelectorAll('[data-tipo]').forEach((botao) => botao.addEventListener('click', () => {
@@ -212,6 +215,12 @@ function etapaParecidos(el, linhas) {
 }
 
 // ---------- 3. completar a ficha ----------
+const TEXTO_WHATSAPP = {
+  true: '<span class="aviso-whatsapp ok">Tem WhatsApp</span>',
+  false: '<span class="aviso-whatsapp atencao">Sem WhatsApp</span>',
+  null: '<span class="t-faint">não foi possível conferir</span>',
+};
+
 function etapaCadastro(el) {
   const pj = rascunho.tipo_pessoa === 'PJ';
   const telefone = digitos(rascunho.telefone);
@@ -222,6 +231,7 @@ function etapaCadastro(el) {
     <form class="card painel" id="form-cadastro" novalidate>
       <div class="verificados">
         <div class="dado"><span class="rotulo">Telefone</span><span class="valor">${esc(formatarTelefone(telefone))}</span></div>
+        <div class="dado"><span class="rotulo">WhatsApp</span><span class="valor">${TEXTO_WHATSAPP[String(rascunho.whatsapp)]}</span></div>
         <div class="dado"><span class="rotulo">E-mail</span><span class="valor">${email ? esc(email) : '—'}</span></div>
         <div class="dado"><span class="rotulo">${pj ? 'CNPJ' : 'CPF'}</span><span class="valor">${documento ? esc(formatarCpfCnpj(documento)) : '—'}</span></div>
         <button type="button" class="btn btn-secundario btn-peq" data-acao="alterar">${icone('edit', 14)}<span>Alterar</span></button>
@@ -238,7 +248,6 @@ function etapaCadastro(el) {
       <h2 class="h-secao">Telefone principal</h2>
       <div class="grade-3">
         ${select('telefone_tipo', 'Tipo', TIPOS_TELEFONE, 'celular', { vazio: false })}
-        <div class="checks"><label class="check"><input type="checkbox" name="telefone_whatsapp" checked><span>É WhatsApp</span></label></div>
       </div>
 
       ${campoTexto('observacoes', 'Observações')}
@@ -282,7 +291,7 @@ function etapaCadastro(el) {
         telefone: {
           numero: telefone,
           tipo: form.elements.namedItem('telefone_tipo').value,
-          whatsapp: form.elements.namedItem('telefone_whatsapp').checked,
+          whatsapp: rascunho.whatsapp === true,
         },
       },
     });

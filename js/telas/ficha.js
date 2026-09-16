@@ -241,7 +241,7 @@ function formTelefone(t) {
         ${campo('observacao', 'Observação', t.observacao, { placeholder: 'ex.: recados', largo: true })}
       </div>
       <div class="checks-linha">
-        <label class="check"><input type="checkbox" name="whatsapp" ${t.whatsapp ? 'checked' : ''}><span>É WhatsApp</span></label>
+        <label class="check"><input type="checkbox" name="whatsapp" ${t.whatsapp ? 'checked' : ''} disabled><span>WhatsApp <small class="t-muted">(conferido sozinho)</small></span></label>
         ${campoPrincipal(t)}
       </div>
       ${botoesForm}
