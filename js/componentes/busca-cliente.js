@@ -228,7 +228,8 @@ export function montarBuscaCliente(container, {
         nome,
         cpf_cnpj: documento || null,
         email: email || null,
-        telefone: { numero: telefone, tipo: 'celular', whatsapp: true },
+        // WhatsApp vem da conferência automática feita ao digitar o telefone.
+        telefone: { numero: telefone, tipo: 'celular', whatsapp: cadastro.querySelector('[name="rapido_telefone"]')?.dataset.whatsapp === '1' },
       },
     });
     if (criado.error) {

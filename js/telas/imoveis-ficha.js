@@ -1,4 +1,4 @@
-// Ficha do imóvel: cabeçalho + abas. Nesta etapa funcionam Dados e Proprietários.
+// Ficha do imóvel: cabeçalho + abas. Funcionam Dados, Proprietários e Contas.
 
 import { sb } from '../supabase.js';
 import {
@@ -8,11 +8,12 @@ import {
 import { limparErros, mostrarErros, mostrarErroForm, ligarMascaras } from '../formulario.js';
 import { camposImovel, lerImovel, enderecoImovel, situacaoImovel, textoPercentual, mensagemErroImovel } from '../imovel-form.js';
 import { montarEditorProprietarios } from '../componentes/editor-proprietarios.js';
+import { renderContas, SELECT_CONTAS } from './imoveis-contas.js';
 
 const ABAS = [
   ['dados', 'Dados', true],
   ['proprietarios', 'Proprietários', true],
-  ['contas', 'Contas', false],
+  ['contas', 'Contas', true],
   ['anuncio', 'Anúncio', false],
   ['anexos', 'Anexos', false],
 ];
@@ -20,15 +21,16 @@ const ABAS = [
 export async function telaImovelFicha(el, id, abaPedida) {
   el.innerHTML = '<div class="carregando">Carregando imóvel…</div>';
 
-  const [imovel, proprietarios] = await Promise.all([
+  const [imovel, proprietarios, contas] = await Promise.all([
     sb.from('loc_imoveis').select('*').eq('id', id).maybeSingle(),
     sb.from('loc_imoveis_proprietarios')
       .select('id, percentual, cliente:cad_clientes(id, codigo, nome, cpf_cnpj, tipo_pessoa)')
       .eq('imovel_id', id)
       .order('percentual', { ascending: false }),
+    sb.from('loc_imoveis_contas').select(SELECT_CONTAS).eq('imovel_id', id).order('criado_em'),
   ]);
 
-  const erro = imovel.error || proprietarios.error;
+  const erro = imovel.error || proprietarios.error || contas.error;
   if (erro) {
     el.innerHTML = `<div class="card vazio">${esc(mensagemErro(erro))}</div>`;
     return;
@@ -38,7 +40,7 @@ export async function telaImovelFicha(el, id, abaPedida) {
     return;
   }
 
-  const ficha = { imovel: imovel.data, proprietarios: proprietarios.data };
+  const ficha = { imovel: imovel.data, proprietarios: proprietarios.data, contas: contas.data };
   const editar = abaPedida === 'editar';
   const aba = editar ? 'dados' : (ABAS.some(([chave, , pronta]) => chave === abaPedida && pronta) ? abaPedida : 'dados');
   const recarregar = () => telaImovelFicha(el, id, aba);
@@ -46,6 +48,7 @@ export async function telaImovelFicha(el, id, abaPedida) {
   el.innerHTML = `${cabecalho(ficha, aba)}<div id="aba-conteudo"></div>`;
   const caixa = el.querySelector('#aba-conteudo');
   if (aba === 'proprietarios') renderProprietarios(caixa, ficha, recarregar);
+  else if (aba === 'contas') renderContas(caixa, ficha, recarregar);
   else if (editar) renderEditar(caixa, ficha);
   else renderDados(caixa, ficha);
 }
@@ -59,7 +62,7 @@ const grade = (pares) => `<div class="dados-grade">${pares.map(([r, v]) => dado(
 const cartao = (titulo, corpo, acao = '') =>
   `<section class="card secao-card"><div class="secao-cabecalho"><h2 class="h-card">${titulo}</h2>${acao}</div>${corpo}</section>`;
 
-function cabecalho({ imovel: i, proprietarios }, aba) {
+function cabecalho({ imovel: i, proprietarios, contas }, aba) {
   const titulo = `${rotulo(TIPOS_IMOVEL, i.tipo)} · ${enderecoImovel(i) || 'Sem endereço'}`;
   const local = [i.bairro, [i.cidade, i.uf].filter(Boolean).join('/')].filter(Boolean).join(', ');
   const selos = [
@@ -67,6 +70,10 @@ function cabecalho({ imovel: i, proprietarios }, aba) {
     i.site_publicar ? `<span class="selo vinho">${icone('globe', 12)}No site</span>` : '',
     i.grupo_olx_publicar ? `<span class="selo vinho">${icone('megaphone', 12)}No Grupo OLX</span>` : '',
   ].join('');
+  const contagem = {
+    proprietarios: proprietarios.length,
+    contas: contas.filter((c) => c.ativo).length,
+  };
 
   return `
     <nav class="trilha"><a href="#/imoveis">Imóveis</a>${icone('chevronRight', 14)}<span>Imóvel ${i.codigo}</span></nav>
@@ -88,7 +95,7 @@ function cabecalho({ imovel: i, proprietarios }, aba) {
     <div class="abas" role="tablist">
       ${ABAS.map(([chave, texto, pronta]) => {
         if (!pronta) return `<span class="aba desativada" title="Em breve">${texto}</span>`;
-        const n = chave === 'proprietarios' ? proprietarios.length : null;
+        const n = contagem[chave];
         return `<a role="tab" aria-selected="${chave === aba}" class="aba ${chave === aba ? 'ativa' : ''}" href="#/imoveis/${i.id}/${chave}">${texto}${n ? `<span class="contagem">${n}</span>` : ''}</a>`;
       }).join('')}
     </div>`;
@@ -119,7 +126,7 @@ function renderDados(caixa, { imovel: i }) {
         ['Valor do aluguel', formatarMoeda(i.valor_aluguel)], ['Condomínio (mensal)', formatarMoeda(i.valor_condominio)], ['IPTU (anual)', formatarMoeda(i.valor_iptu_anual)],
         ['Seguro incêndio (anual)', formatarMoeda(i.valor_seguro_incendio_anual)], ['Taxa de administração', textoPercentual(i.taxa_administracao)], ['Taxa de intermediação', textoPercentual(i.taxa_intermediacao)],
       ])}
-        <p class="apoio">O IPTU (anual) é a soma dos IPTUs da aba Contas. Os valores viram sugestão quando o contrato for criado.</p>`)}
+        <p class="apoio">O IPTU (anual) é a soma dos IPTUs atuais da aba Contas. Os valores viram sugestão quando o contrato for criado.</p>`)}
       ${cartao('Documentação', grade([
         ['Matrícula', i.matricula], ['Cartório', i.cartorio], ['Tipo DIMOB', rotulo(TIPOS_DIMOB, i.tipo_dimob)],
       ]))}
