@@ -16,7 +16,7 @@ const CLIENTE = 'id, codigo, nome, cpf_cnpj, tipo_pessoa';
 export async function telaNegociacaoFicha(el, id, abaPedida) {
   el.innerHTML = '<div class="carregando">Carregando negociação…</div>';
 
-  const [negociacao, pessoas, equipe] = await Promise.all([
+  const [negociacao, pessoas, equipe, contrato] = await Promise.all([
     sb.from('loc_negociacoes')
       .select(`*, locatario:cad_clientes!loc_negociacoes_locatario_cliente_id_fkey(${CLIENTE})`)
       .eq('id', id).maybeSingle(),
@@ -24,6 +24,7 @@ export async function telaNegociacaoFicha(el, id, abaPedida) {
       .select(`id, papel, cliente:cad_clientes(${CLIENTE})`)
       .eq('negociacao_id', id).order('criado_em'),
     carregarEquipe().then((data) => ({ data }), (error) => ({ error })),
+    sb.from('loc_contratos').select('id, codigo').eq('negociacao_id', id).maybeSingle(),
   ]);
 
   const erro = negociacao.error || pessoas.error || equipe.error;
@@ -44,7 +45,7 @@ export async function telaNegociacaoFicha(el, id, abaPedida) {
     return;
   }
 
-  const ficha = { n: negociacao.data, pessoas: pessoas.data, equipe: equipe.data, imovel };
+  const ficha = { n: negociacao.data, pessoas: pessoas.data, equipe: equipe.data, imovel, contrato: contrato.data };
   const editar = abaPedida === 'editar' && ['em_negociacao', 'fechada'].includes(ficha.n.situacao);
   const aba = ABAS.some(([chave]) => chave === abaPedida) ? abaPedida : 'resumo';
   const recarregar = () => telaNegociacaoFicha(el, id, aba);
@@ -59,7 +60,7 @@ export async function telaNegociacaoFicha(el, id, abaPedida) {
 }
 
 // ---------- cabeçalho ----------
-function cabecalho({ n, imovel }, aba) {
+function cabecalho({ n, imovel, contrato }, aba) {
   const aberta = ['em_negociacao', 'fechada'].includes(n.situacao);
   const botoes = [];
   if (aberta) botoes.push(`<a class="btn btn-secundario" href="#/negociacoes/${n.id}/editar">${icone('edit')}<span>Editar</span></a>`);
@@ -68,7 +69,9 @@ function cabecalho({ n, imovel }, aba) {
     botoes.push(`<button type="button" class="btn btn-primario" data-acao="fechar">${icone('check')}<span>Fechar negociação</span></button>`);
   } else if (n.situacao === 'fechada') {
     botoes.push(`<button type="button" class="btn btn-secundario" data-acao="reabrir">${icone('undo')}<span>Reabrir</span></button>`);
-    botoes.push(`<button type="button" class="btn btn-primario" disabled title="O contrato chega na próxima etapa">${icone('contract')}<span>Gerar contrato</span></button>`);
+    botoes.push(`<a class="btn btn-primario" href="#/negociacoes/${n.id}/contrato">${icone('contract')}<span>Gerar contrato</span></a>`);
+  } else if (n.situacao === 'contrato_gerado' && contrato) {
+    botoes.push(`<a class="btn btn-primario" href="#/contratos/${contrato.id}">${icone('contract')}<span>Ver contrato ${contrato.codigo}</span></a>`);
   } else if (n.situacao === 'cancelada') {
     botoes.push(`<button type="button" class="btn btn-secundario" data-acao="reabrir">${icone('undo')}<span>Reabrir</span></button>`);
   }
@@ -222,7 +225,7 @@ async function renderResumo(caixa, { n, pessoas, equipe, imovel }) {
         : incompletas ? `${incompletas} ${incompletas === 1 ? 'ficha para completar' : 'fichas para completar'}` : 'Há pendências'}</span>
     </div>
     <p class="apoio">O sistema confere se as fichas de todos têm os dados que o contrato usa. ${tudoOk
-      ? (n.situacao === 'fechada' ? 'Está tudo pronto. O botão Gerar contrato chega na próxima etapa do sistema.' : 'Está tudo pronto. Feche a negociação para seguir para o contrato.')
+      ? (n.situacao === 'fechada' ? 'Está tudo pronto. Clique em Gerar contrato.' : 'Está tudo pronto. Feche a negociação para seguir para o contrato.')
       : 'O contrato só pode ser gerado quando tudo estiver completo.'}</p>
     ${problemas.map((p) => `<div class="conf-linha"><span class="conf-icone atencao">${icone('alert', 14)}</span><div class="conf-info"><strong>${esc(p)}</strong></div></div>`).join('')}
     ${data.map((item) => {

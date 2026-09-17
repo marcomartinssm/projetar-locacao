@@ -2,7 +2,11 @@
 // Os registros são gravados pelo banco automaticamente e não podem ser alterados.
 
 import { sb } from '../supabase.js';
-import { esc, formatarData, mensagemErro, SITUACOES_NEGOCIACAO, SITUACOES_IMOVEL, GARANTIAS } from '../util.js';
+import {
+  esc, formatarData, mensagemErro,
+  SITUACOES_NEGOCIACAO, SITUACOES_IMOVEL, SITUACOES_CONTRATO, GARANTIAS,
+  FORMAS_COBRANCA, INDICES_REAJUSTE, FORMAS_INTERMEDIACAO,
+} from '../util.js';
 
 const POR_PAGINA = 50;
 
@@ -21,6 +25,9 @@ const TABELAS = {
   loc_imoveis_anexos: 'Anexo',
   loc_negociacoes: 'Dados da negociação',
   loc_negociacoes_pessoas: 'Pessoa da negociação',
+  loc_contratos: 'Dados do contrato',
+  loc_contratos_pessoas: 'Pessoa do contrato',
+  loc_contratos_proprietarios: 'Proprietário do contrato',
 };
 
 const ACOES = {
@@ -61,11 +68,28 @@ const CAMPOS = {
   inicio_previsto: 'Início previsto', garantia_tipo: 'Garantia', corretor_id: 'Corretor que alugou', captador_id: 'Captador',
   fechada_em: 'Fechada em', cancelada_em: 'Cancelada em', motivo_cancelamento: 'Motivo do cancelamento',
   anotacoes: 'Anotações', papel: 'Papel', codigo: 'Código',
+  inicio: 'Início', fim: 'Fim', dia_vencimento: 'Dia de vencimento', forma_cobranca: 'Forma de cobrança',
+  primeiro_vencimento: 'Primeiro vencimento', indice_reajuste: 'Índice de reajuste', proximo_reajuste: 'Próximo reajuste',
+  repasse_tipo: 'Forma de repasse', repasse_dia: 'Dia do repasse', repasse_dias: 'Dias para o repasse', retem_irrf: 'Retém IRRF',
+  garantia_valor: 'Valor da garantia', garantia_seguradora: 'Seguradora da garantia', garantia_apolice: 'Apólice da garantia',
+  garantia_inicio: 'Início da garantia', garantia_fim: 'Fim da garantia', garantia_observacao: 'Observação da garantia',
+  seguro_incendio: 'Seguro incêndio', seguro_seguradora: 'Seguradora', seguro_apolice: 'Apólice do seguro',
+  seguro_inicio: 'Início do seguro', seguro_fim: 'Fim do seguro', seguro_valor_anual: 'Valor anual do seguro',
+  multa_atraso: 'Multa por atraso', juros_mes: 'Juros ao mês', desconto_pontualidade: 'Desconto pontualidade',
+  multa_rescisao_alugueis: 'Multa de rescisão (aluguéis)', sem_multa_apos_meses: 'Sem multa após (meses)',
+  taxa_adm_multas: 'Taxa adm sobre multas', taxa_adm_juros: 'Taxa adm sobre juros',
+  taxa_adm_multa_rescisoria: 'Taxa adm sobre multa rescisória', intermediacao_forma: 'Intermediação cobrada',
+  intermediacao_parcelas: 'Parcelas da intermediação', intermediacao_a_partir_de: 'Intermediação a partir do aluguel',
+  texto_acerto_contas: 'Texto do acerto de contas', encerrado_em: 'Encerrado em', encerrado_motivo: 'Motivo do encerramento',
 };
 
 // Códigos gravados no banco → texto
 const VALORES = {
-  situacao: Object.fromEntries([...SITUACOES_NEGOCIACAO, ...SITUACOES_IMOVEL]),
+  situacao: Object.fromEntries([...SITUACOES_NEGOCIACAO, ...SITUACOES_IMOVEL, ...SITUACOES_CONTRATO]),
+  forma_cobranca: Object.fromEntries(FORMAS_COBRANCA),
+  indice_reajuste: Object.fromEntries(INDICES_REAJUSTE),
+  intermediacao_forma: Object.fromEntries(FORMAS_INTERMEDIACAO),
+  repasse_tipo: { dia_fixo: 'Fixo, todo mês', apos_recebimento: 'Após o recebimento' },
   garantia_tipo: Object.fromEntries(GARANTIAS),
   papel: { solidario: 'Locatário solidário', fiador: 'Fiador' },
 };
@@ -73,10 +97,10 @@ const VALORES = {
 // Campos que guardam o id de uma ficha de cliente ou de alguém da equipe: mostram o nome.
 const CAMPOS_ID = ['locatario_cliente_id', 'corretor_id', 'captador_id', 'titular_cliente_id', 'empresa_cliente_id', 'cliente_vinculado_id'];
 // Nestas tabelas o cliente_id é a pessoa incluída (e não a própria ficha).
-const TABELAS_PESSOA = new Set(['loc_negociacoes_pessoas', 'loc_imoveis_proprietarios']);
+const TABELAS_PESSOA = new Set(['loc_negociacoes_pessoas', 'loc_imoveis_proprietarios', 'loc_contratos_pessoas', 'loc_contratos_proprietarios']);
 const nomes = new Map();
 
-const OCULTOS = new Set(['id', 'cliente_id', 'imovel_id', 'negociacao_id', 'criado_em', 'atualizado_em', 'senha_segredo_id']);
+const OCULTOS = new Set(['id', 'cliente_id', 'imovel_id', 'negociacao_id', 'contrato_id', 'criado_em', 'atualizado_em', 'senha_segredo_id']);
 
 const dataHora = (iso) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
 

@@ -8,7 +8,7 @@ import { enderecoImovel, situacaoImovel, textoPercentual } from '../imovel-form.
 export async function carregarImovelNegociacao(id) {
   const { data, error } = await sb.from('loc_imoveis')
     .select(`id, codigo, tipo, destinacao, situacao, logradouro, numero, complemento, bairro, cidade, uf,
-      valor_aluguel, taxa_administracao, taxa_intermediacao,
+      valor_aluguel, taxa_administracao, taxa_intermediacao, valor_seguro_incendio_anual,
       proprietarios:loc_imoveis_proprietarios(percentual, cliente:cad_clientes(id, codigo, nome))`)
     .eq('id', id)
     .single();

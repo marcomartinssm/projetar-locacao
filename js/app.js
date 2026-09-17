@@ -2,6 +2,7 @@
 // Rotas: #/clientes · #/clientes/novo · #/clientes/<id>/<aba>
 //        #/imoveis  · #/imoveis/novo  · #/imoveis/<id>/<aba>
 //        #/negociacoes · #/negociacoes/novo[?imovel=<id>] · #/negociacoes/<id>/<aba>
+//        #/negociacoes/<id>/contrato (gerar) · #/contratos · #/contratos/<id>/<aba>
 
 import { sb } from './supabase.js';
 import { esc, icone, iniciais } from './util.js';
@@ -14,6 +15,9 @@ import { telaImovelFicha } from './telas/imoveis-ficha.js';
 import { telaNegociacoesLista } from './telas/negociacoes-lista.js';
 import { telaNegociacaoNova } from './telas/negociacoes-nova.js';
 import { telaNegociacaoFicha } from './telas/negociacoes-ficha.js';
+import { telaContratosLista } from './telas/contratos-lista.js';
+import { telaContratoFicha } from './telas/contratos-ficha.js';
+import { telaContratoGerar } from './telas/contratos-gerar.js';
 
 const app = document.getElementById('app');
 let sessao = null;
@@ -23,7 +27,7 @@ const MENU = [
   ['Clientes', 'users', '#/clientes'],
   ['Imóveis', 'home', '#/imoveis'],
   ['Negociações', 'handshake', '#/negociacoes'],
-  ['Contratos', 'contract', null],
+  ['Contratos', 'contract', '#/contratos'],
   ['Financeiro', 'wallet', null],
 ];
 
@@ -140,10 +144,21 @@ function rotear() {
     window.scrollTo(0, 0);
     const nova = hash.match(/^#\/negociacoes\/novo(?:\?imovel=([0-9a-f-]{36}))?$/);
     if (nova) return telaNegociacaoNova(conteudo, nova[1] || null);
+    const gerar = hash.match(/^#\/negociacoes\/([0-9a-f-]{36})\/contrato$/);
+    if (gerar) return telaContratoGerar(conteudo, gerar[1]);
     const ficha = hash.match(/^#\/negociacoes\/([0-9a-f-]{36})(?:\/([a-z]+))?$/);
     if (ficha) return telaNegociacaoFicha(conteudo, ficha[1], ficha[2] || 'resumo');
     if (hash !== '#/negociacoes') history.replaceState(null, '', '#/negociacoes');
     return telaNegociacoesLista(conteudo);
+  }
+
+  if (hash.startsWith('#/contratos')) {
+    const conteudo = montarLayout('Contratos');
+    window.scrollTo(0, 0);
+    const ficha = hash.match(/^#\/contratos\/([0-9a-f-]{36})(?:\/([a-z]+))?$/);
+    if (ficha) return telaContratoFicha(conteudo, ficha[1], ficha[2] || 'resumo');
+    if (hash !== '#/contratos') history.replaceState(null, '', '#/contratos');
+    return telaContratosLista(conteudo);
   }
 
   const conteudo = montarLayout('Clientes');

@@ -417,6 +417,24 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
   .conf-linha { flex-wrap: wrap; }
 }
 
+/* ---------- contratos ---------- */
+.tabela-contratos .linha { grid-template-columns: 56px minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1.2fr) 110px 92px 150px 110px 16px; }
+.situacao-imovel.ctr-ativo { background: var(--ok-palido); color: var(--ok); }
+.situacao-imovel.ctr-encerrado { background: #f1eeef; color: var(--apagado); }
+.situacao-imovel.ctr-rescindido { background: var(--erro-palido); color: var(--erro); }
+.resumo-origem { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding: 16px 20px; font-size: 13px; color: var(--apagado); }
+.resumo-origem strong { color: var(--texto); font-weight: 600; }
+.resumo-origem .ok-linha { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--ok); font-weight: 600; }
+.opcoes-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.campo-mini { width: 76px; height: 40px; padding: 0 10px; border: 1px solid var(--borda); border-radius: 8px; text-align: center; font-size: 15px; font-weight: 600; }
+.campo-mini:focus { outline: none; border-color: var(--vinho); box-shadow: 0 0 0 3px var(--vinho-palido); }
+.form-contrato .check input[type="radio"] { width: 18px; height: 18px; accent-color: var(--vinho); }
+
+@media (max-width: 960px) {
+  .tabela-contratos .linha { min-width: 1000px; }
+  .resumo-origem .ok-linha { margin-left: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

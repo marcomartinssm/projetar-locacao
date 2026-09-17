@@ -265,6 +265,10 @@ Object.assign(ICONES, {
 export const SITUACOES_NEGOCIACAO = [
   ['em_negociacao', 'Em negociação'], ['fechada', 'Fechada'], ['contrato_gerado', 'Contrato gerado'], ['cancelada', 'Cancelada'],
 ];
+export const SITUACOES_CONTRATO = [['ativo', 'Ativo'], ['encerrado', 'Encerrado'], ['rescindido', 'Rescindido']];
+export const FORMAS_COBRANCA = [['pos', 'Aluguel vencido (PÓS)'], ['pre', 'Aluguel adiantado (PRÉ)']];
+export const INDICES_REAJUSTE = [['igpm', 'IGP-M'], ['ipca', 'IPCA'], ['inpc', 'INPC'], ['sem_reajuste', 'Sem reajuste']];
+export const FORMAS_INTERMEDIACAO = [['unica', 'Única'], ['parcelada', 'Parcelada']];
 export const GARANTIAS = [
   ['fiador', 'Fiador'], ['caucao', 'Caução'], ['seguro_fianca', 'Seguro fiança'], ['credpago', 'CredPago'],
   ['titulo_capitalizacao', 'Título de capitalização'], ['sem_garantia', 'Sem garantia'],
