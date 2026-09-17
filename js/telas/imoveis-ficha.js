@@ -16,6 +16,7 @@ const ABAS = [
   ['contas', 'Contas', true],
   ['anuncio', 'Anúncio', false],
   ['anexos', 'Anexos', false],
+  ['auditoria', 'Auditoria', true],
 ];
 
 export async function telaImovelFicha(el, id, abaPedida) {
@@ -49,6 +50,7 @@ export async function telaImovelFicha(el, id, abaPedida) {
   const caixa = el.querySelector('#aba-conteudo');
   if (aba === 'proprietarios') renderProprietarios(caixa, ficha, recarregar);
   else if (aba === 'contas') renderContas(caixa, ficha, recarregar);
+  else if (aba === 'auditoria') import('../componentes/auditoria.js').then((m) => m.renderAuditoria(caixa, { entidade: 'imovel', entidadeId: id }));
   else if (editar) renderEditar(caixa, ficha);
   else renderDados(caixa, ficha);
 }

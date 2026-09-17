@@ -22,6 +22,7 @@ const ABAS = [
   ['anexos', 'Anexos'],
   ['vinculos', 'Vínculos'],
   ['relacionamentos', 'Relacionamentos'],
+  ['auditoria', 'Auditoria'],
 ];
 const ROTULO_ESTADO_CIVIL = Object.fromEntries(ESTADOS_CIVIS);
 const ROTULO_TIPO_TELEFONE = Object.fromEntries(TIPOS_TELEFONE);
@@ -70,6 +71,7 @@ export async function telaFicha(el, id, abaPedida) {
   else if (aba === 'anexos') renderAnexos(caixa, ficha, recarregar);
   else if (aba === 'vinculos') renderVinculos(caixa, ficha, recarregar);
   else if (aba === 'relacionamentos') renderRelacionamentos(caixa, ficha, recarregar);
+  else if (aba === 'auditoria') import('../componentes/auditoria.js').then((m) => m.renderAuditoria(caixa, { entidade: 'cliente', entidadeId: id }));
   else if (editar) renderEditarDados(caixa, ficha);
   else renderDados(caixa, ficha);
 }
