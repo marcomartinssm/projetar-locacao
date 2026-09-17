@@ -1,4 +1,4 @@
-// Ficha do cliente: cabeçalho + abas. Nesta etapa funcionam Dados e Contatos.
+// Ficha do cliente: cabeçalho + abas Dados, Contatos, Contas bancárias, Anexos, Vínculos e Relacionamentos.
 
 import { sb } from '../supabase.js';
 import {
@@ -10,14 +10,18 @@ import {
   mostrarErros, mostrarErroForm, ligarMascaras, CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
 } from '../formulario.js';
 import { ligarBuscaCnpj, preencherVazios } from '../consultas.js';
+import { renderContasBancarias, SELECT_CONTAS_BANCARIAS } from './cliente-contas.js';
+import { renderAnexos } from './cliente-anexos.js';
+import { renderVinculos, SELECT_VINCULOS } from './cliente-vinculos.js';
+import { renderRelacionamentos } from './cliente-relacionamentos.js';
 
 const ABAS = [
-  ['dados', 'Dados', true],
-  ['contatos', 'Contatos', true],
-  ['contas', 'Contas bancárias', false],
-  ['anexos', 'Anexos', false],
-  ['vinculos', 'Vínculos', false],
-  ['relacionamentos', 'Relacionamentos', false],
+  ['dados', 'Dados'],
+  ['contatos', 'Contatos'],
+  ['contas', 'Contas bancárias'],
+  ['anexos', 'Anexos'],
+  ['vinculos', 'Vínculos'],
+  ['relacionamentos', 'Relacionamentos'],
 ];
 const ROTULO_ESTADO_CIVIL = Object.fromEntries(ESTADOS_CIVIS);
 const ROTULO_TIPO_TELEFONE = Object.fromEntries(TIPOS_TELEFONE);
@@ -26,14 +30,17 @@ const TABELA = { telefones: 'cad_clientes_telefones', emails: 'cad_clientes_emai
 export async function telaFicha(el, id, abaPedida) {
   el.innerHTML = '<div class="carregando">Carregando ficha…</div>';
 
-  const [cliente, telefones, emails, relacionamentos] = await Promise.all([
+  const [cliente, telefones, emails, relacionamentos, contasBancarias, anexos, vinculos] = await Promise.all([
     sb.from('cad_clientes').select('*').eq('id', id).maybeSingle(),
     sb.from('cad_clientes_telefones').select('*').eq('cliente_id', id).order('principal', { ascending: false }).order('criado_em'),
     sb.from('cad_clientes_emails').select('*').eq('cliente_id', id).order('principal', { ascending: false }).order('criado_em'),
-    sb.from('cad_clientes_relacionamentos').select('tipo').eq('cliente_id', id).eq('ativo', true),
+    sb.from('cad_clientes_relacionamentos').select('*').eq('cliente_id', id),
+    sb.from('cad_clientes_contas_bancarias').select(SELECT_CONTAS_BANCARIAS).eq('cliente_id', id).order('principal', { ascending: false }).order('criado_em'),
+    sb.from('cad_clientes_anexos').select('*').eq('cliente_id', id).order('criado_em', { ascending: false }),
+    sb.from('cad_clientes_vinculos').select(SELECT_VINCULOS).or(`cliente_id.eq.${id},cliente_vinculado_id.eq.${id}`).order('criado_em'),
   ]);
 
-  const erro = cliente.error || telefones.error || emails.error || relacionamentos.error;
+  const erro = [cliente, telefones, emails, relacionamentos, contasBancarias, anexos, vinculos].find((r) => r.error)?.error;
   if (erro) {
     el.innerHTML = `<div class="card vazio">${esc(mensagemErro(erro))}</div>`;
     return;
@@ -47,15 +54,22 @@ export async function telaFicha(el, id, abaPedida) {
     cliente: cliente.data,
     telefones: telefones.data,
     emails: emails.data,
-    relacionamentos: [...new Set(relacionamentos.data.map((r) => r.tipo))],
+    relacionamentos: relacionamentos.data,
+    contasBancarias: contasBancarias.data,
+    anexos: anexos.data,
+    vinculos: vinculos.data,
   };
   const editar = abaPedida === 'editar';
-  const aba = editar ? 'dados' : (ABAS.some(([chave, , pronta]) => chave === abaPedida && pronta) ? abaPedida : 'dados');
+  const aba = editar ? 'dados' : (ABAS.some(([chave]) => chave === abaPedida) ? abaPedida : 'dados');
   const recarregar = () => telaFicha(el, id, aba);
 
   el.innerHTML = `${cabecalho(ficha, aba)}<div id="aba-conteudo"></div>`;
   const caixa = el.querySelector('#aba-conteudo');
   if (aba === 'contatos') renderContatos(caixa, ficha, recarregar);
+  else if (aba === 'contas') renderContasBancarias(caixa, ficha, recarregar);
+  else if (aba === 'anexos') renderAnexos(caixa, ficha, recarregar);
+  else if (aba === 'vinculos') renderVinculos(caixa, ficha, recarregar);
+  else if (aba === 'relacionamentos') renderRelacionamentos(caixa, ficha, recarregar);
   else if (editar) renderEditarDados(caixa, ficha);
   else renderDados(caixa, ficha);
 }
@@ -74,7 +88,14 @@ const juntar = (...partes) => partes.filter(Boolean).join(' / ');
 function cabecalho(ficha, aba) {
   const c = ficha.cliente;
   const pj = c.tipo_pessoa === 'PJ';
-  const contagem = { contatos: ficha.telefones.length + ficha.emails.length };
+  const tiposAtivos = [...new Set(ficha.relacionamentos.filter((r) => r.ativo).map((r) => r.tipo))];
+  const contagem = {
+    contatos: ficha.telefones.length + ficha.emails.length,
+    contas: ficha.contasBancarias.filter((conta) => conta.ativo).length,
+    anexos: ficha.anexos.length,
+    vinculos: ficha.vinculos.length,
+    relacionamentos: tiposAtivos.length,
+  };
 
   return `
     <nav class="trilha"><a href="#/clientes">Clientes</a>${icone('chevronRight', 14)}<span>${esc(c.nome)}</span></nav>
@@ -91,13 +112,12 @@ function cabecalho(ficha, aba) {
           <span>${pj ? 'CNPJ' : 'CPF'} <strong>${c.cpf_cnpj ? esc(formatarCpfCnpj(c.cpf_cnpj)) : '—'}</strong></span>
           <span>Cadastrado em <strong>${formatarData(c.criado_em)}</strong></span>
         </div>
-        <div class="chips-mini">${ficha.relacionamentos.length ? ficha.relacionamentos.map(chipRel).join('') : '<small class="t-faint">Sem relacionamentos</small>'}</div>
+        <div class="chips-mini">${tiposAtivos.length ? tiposAtivos.map(chipRel).join('') : '<small class="t-faint">Sem relacionamentos</small>'}</div>
       </div>
       <a class="btn btn-secundario" href="#/clientes/${c.id}/editar">${icone('edit')}<span>Editar</span></a>
     </section>
     <div class="abas" role="tablist">
-      ${ABAS.map(([chave, rotulo, pronta]) => {
-        if (!pronta) return `<span class="aba desativada" title="Em breve">${rotulo}</span>`;
+      ${ABAS.map(([chave, rotulo]) => {
         const n = contagem[chave];
         return `<a role="tab" aria-selected="${chave === aba}" class="aba ${chave === aba ? 'ativa' : ''}" href="#/clientes/${c.id}/${chave}">${rotulo}${n ? `<span class="contagem">${n}</span>` : ''}</a>`;
       }).join('')}
@@ -122,7 +142,7 @@ function renderDados(caixa, ficha) {
     <div class="grade-cards">
       ${cartao(pj ? 'Empresa' : 'Identificação', grade(identificacao))}
       ${pj ? '' : cartao('Informações pessoais', `${grade([['Nacionalidade', c.nacionalidade], ['Estado civil', ROTULO_ESTADO_CIVIL[c.estado_civil]], ['Profissão', c.profissao]])}
-        <p class="apoio">O cônjuge tem ficha própria e vai aparecer na aba Vínculos.</p>`)}
+        <p class="apoio">O cônjuge tem ficha própria e aparece na aba <a href="#/clientes/${c.id}/vinculos">Vínculos</a>.</p>`)}
       ${cartao('Endereço', grade(endereco))}
       ${cartao('Observações', c.observacoes ? `<p class="texto-livre">${esc(c.observacoes)}</p>` : '<p class="t-faint">Sem observações.</p>')}
     </div>`;
@@ -271,7 +291,7 @@ function listaTelefones(ficha, ed) {
       ${acoesItem('telefones', t)}
     </div>`)).join('');
   const novo = ed?.lista === 'telefones' && ed.id === 'novo'
-    ? formTelefone({ tipo: 'celular', whatsapp: true, principal: ficha.telefones.length === 0 })
+    ? formTelefone({ tipo: 'celular', whatsapp: false, principal: ficha.telefones.length === 0 })
     : '';
   return `<div class="contatos">${novo}${linhas}${!linhas && !novo ? '<p class="t-faint">Nenhum telefone.</p>' : ''}</div>`;
 }

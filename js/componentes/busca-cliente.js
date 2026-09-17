@@ -246,7 +246,11 @@ export function montarBuscaCliente(container, {
     escolher({ ...ficha.data, telefone_principal: telefone });
   }
 
-  container.addEventListener('click', (ev) => {
+  // Os eventos ficam no bloco criado agora (e não no container), para não se acumularem
+  // quando a mesma área é remontada, por exemplo ao clicar em "Trocar".
+  const raiz = container.querySelector('.busca-cliente');
+
+  raiz.addEventListener('click', (ev) => {
     const botao = ev.target.closest('button');
     if (!botao) return;
 
@@ -266,7 +270,7 @@ export function montarBuscaCliente(container, {
     }
   });
 
-  container.addEventListener('keydown', (ev) => {
+  raiz.addEventListener('keydown', (ev) => {
     // Enter dentro do cadastro rápido salva, sem enviar o formulário em volta.
     if (ev.key !== 'Enter' || !cadastro.contains(ev.target)) return;
     ev.preventDefault();
