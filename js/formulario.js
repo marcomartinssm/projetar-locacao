@@ -1,5 +1,6 @@
 // Peças de formulário reaproveitadas no cadastro e na edição da ficha.
 
+import { sb } from './supabase.js';
 import {
   esc, formatarCpfCnpj, formatarCep, UFS, ESTADOS_CIVIS,
   aplicarMascaraTelefone, aplicarMascaraCpfCnpj, aplicarMascaraCep,
@@ -64,7 +65,7 @@ export function camposIdentificacao(pj, c = {}, { comDocumento = false } = {}) {
       ${campo('data_nascimento', 'Data de nascimento', c.data_nascimento, { tipo: 'date' })}
       ${campo('nacionalidade', 'Nacionalidade', c.nacionalidade)}
       ${select('estado_civil', 'Estado civil', ESTADOS_CIVIS, c.estado_civil)}
-      ${campo('profissao', 'Profissão', c.profissao)}
+      ${campo('profissao', 'Profissão', c.profissao, { lista: 'lista-profissoes', placeholder: 'Escolha na lista ou digite uma nova' })}
     </div>`;
 }
 
@@ -116,6 +117,22 @@ export function mostrarErroForm(form, seletor, mensagem) {
   const aviso = form.querySelector(seletor);
   aviso.textContent = mensagem;
   aviso.hidden = false;
+}
+
+// A profissão é um cadastro: quem digitar uma nova faz ela entrar na lista.
+export async function ligarListaProfissoes(raiz) {
+  const campoProfissao = raiz.querySelector('[name="profissao"]');
+  if (!campoProfissao || raiz.querySelector('#lista-profissoes')) return;
+  const { data, error } = await sb.from('cad_profissoes').select('nome').eq('ativo', true).order('nome');
+  if (error || !campoProfissao.isConnected) return;
+  const lista = document.createElement('datalist');
+  lista.id = 'lista-profissoes';
+  lista.innerHTML = data.map((p) => `<option value="${esc(p.nome)}"></option>`).join('');
+  campoProfissao.parentElement.appendChild(lista);
+}
+
+export async function guardarProfissao(nome) {
+  if (nome) await sb.rpc('cad_guardar_profissao', { p_nome: nome });
 }
 
 const MASCARAS = { telefone: aplicarMascaraTelefone, cpf_cnpj: aplicarMascaraCpfCnpj, cep: aplicarMascaraCep };

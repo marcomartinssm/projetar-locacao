@@ -7,7 +7,8 @@ import {
 } from '../util.js';
 import {
   campo, select, campoTexto, camposIdentificacao, camposEndereco, lerCampos, limparErros,
-  mostrarErros, mostrarErroForm, ligarMascaras, CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
+  mostrarErros, mostrarErroForm, ligarMascaras, ligarListaProfissoes, guardarProfissao,
+  CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
 } from '../formulario.js';
 import { ligarBuscaCnpj, preencherVazios } from '../consultas.js';
 import { renderContasBancarias, SELECT_CONTAS_BANCARIAS } from './cliente-contas.js';
@@ -175,6 +176,7 @@ function renderEditarDados(caixa, ficha) {
 
   const form = caixa.querySelector('#form-dados');
   ligarMascaras(form);
+  ligarListaProfissoes(form);
   if (pj) ligarBuscaCnpj(form.elements.namedItem('cpf_cnpj'), (empresa) => preencherVazios(form, empresa));
   form.elements.namedItem('nome').focus();
   form.querySelector('[data-acao="cancelar"]').addEventListener('click', voltar);
@@ -201,6 +203,7 @@ function renderEditarDados(caixa, ficha) {
     botao.disabled = false;
     if (error) return mostrarErroForm(form, '.erro-form', mensagemErro(error));
 
+    await guardarProfissao(dados.profissao);
     toast('Dados salvos.');
     voltar();
   });

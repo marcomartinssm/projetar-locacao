@@ -7,7 +7,8 @@ import {
 } from '../util.js';
 import {
   campo, select, campoTexto, camposIdentificacao, camposEndereco, lerCampos,
-  limparErros, mostrarErros, mostrarErroForm, ligarMascaras, CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
+  limparErros, mostrarErros, mostrarErroForm, ligarMascaras, ligarListaProfissoes, guardarProfissao,
+  CAMPOS_PF, CAMPOS_PJ, CAMPOS_ENDERECO,
 } from '../formulario.js';
 import { buscarCnpj, ligarBuscaCnpj, preencherVazios, textoSituacao } from '../consultas.js';
 
@@ -261,6 +262,7 @@ function etapaCadastro(el) {
 
   const form = el.querySelector('#form-cadastro');
   ligarMascaras(form);
+  ligarListaProfissoes(form);
   if (pj && documento) completarComReceita(form, documento);
 
   form.querySelector('[data-acao="alterar"]').addEventListener('click', () => {
@@ -298,6 +300,7 @@ function etapaCadastro(el) {
     botao.disabled = false;
     if (error) return mostrarErroForm(form, '.erro-form', mensagemErro(error));
 
+    await guardarProfissao(dados.profissao);
     rascunho = rascunhoVazio();
     toast('Cliente cadastrado.');
     location.hash = `#/clientes/${data}`;

@@ -156,9 +156,9 @@ export function montarFormContrato(el, { c = {}, garantiaTipo, fiadores = [], se
       <h2 class="h-secao">Taxas da imobiliária</h2>
       <div class="grade-4">
         ${campo('taxa_administracao', 'Taxa de administração (%)', pct(c.taxa_administracao), { inputmode: 'decimal' })}
-        ${campo('taxa_adm_multas', 'Taxa adm sobre multas (%)', pct(c.taxa_adm_multas), { inputmode: 'decimal' })}
-        ${campo('taxa_adm_juros', 'Taxa adm sobre juros (%)', pct(c.taxa_adm_juros), { inputmode: 'decimal' })}
-        ${campo('taxa_adm_multa_rescisoria', 'Taxa adm sobre multa rescisória (%)', pct(c.taxa_adm_multa_rescisoria), { inputmode: 'decimal' })}
+        ${campo('taxa_adm_multas', 'Taxa adm sobre multas (%)', pct(novo ? c.taxa_adm_multas ?? 15 : c.taxa_adm_multas), { inputmode: 'decimal' })}
+        ${campo('taxa_adm_juros', 'Taxa adm sobre juros (%)', pct(novo ? c.taxa_adm_juros ?? 15 : c.taxa_adm_juros), { inputmode: 'decimal' })}
+        ${campo('taxa_adm_multa_rescisoria', 'Taxa adm sobre multa rescisória (%)', pct(novo ? c.taxa_adm_multa_rescisoria ?? 40 : c.taxa_adm_multa_rescisoria), { inputmode: 'decimal' })}
         ${campo('taxa_intermediacao', 'Taxa de intermediação (%)', pct(c.taxa_intermediacao), { inputmode: 'decimal' })}
         ${select('intermediacao_forma', 'Intermediação cobrada', FORMAS_INTERMEDIACAO, c.intermediacao_forma ?? 'unica', { vazio: false })}
         ${campo('intermediacao_parcelas', 'Parcelas', inteiro(c.intermediacao_parcelas), { inputmode: 'numeric' })}

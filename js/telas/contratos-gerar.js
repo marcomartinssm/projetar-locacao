@@ -85,8 +85,6 @@ export async function telaContratoGerar(el, negociacaoId) {
       valor_aluguel: n.valor_aluguel,
       taxa_administracao: n.taxa_administracao,
       taxa_intermediacao: n.taxa_intermediacao,
-      taxa_adm_multas: n.taxa_administracao,
-      taxa_adm_juros: n.taxa_administracao,
       seguro_valor_anual: imovel.valor_seguro_incendio_anual,
       anotacoes: n.anotacoes,
       repasse_dia: 15,
