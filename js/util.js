@@ -256,4 +256,16 @@ Object.assign(ICONES, {
   download: '<path d="M12 4v12"></path><path d="M7 11l5 5 5-5"></path><path d="M4 20h16"></path>',
   bank: '<path d="M3 10l9-6 9 6"></path><path d="M5 10v8"></path><path d="M9.5 10v8"></path><path d="M14.5 10v8"></path><path d="M19 10v8"></path><path d="M3 21h18"></path>',
   link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path>',
+  handshake: '<path d="M3 11l4-4 4 3 3-2 7 5"></path><path d="M7 7L3 11l6 6 2-1 2 2 2-1 2 2 4-4"></path><path d="M11 16l-2-2"></path><path d="M13 15l-2-2"></path>',
+  x: '<path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>',
+  undo: '<path d="M9 14L4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-3"></path>',
 });
+
+// ---------- listas da negociação ----------
+export const SITUACOES_NEGOCIACAO = [
+  ['em_negociacao', 'Em negociação'], ['fechada', 'Fechada'], ['contrato_gerado', 'Contrato gerado'], ['cancelada', 'Cancelada'],
+];
+export const GARANTIAS = [
+  ['fiador', 'Fiador'], ['caucao', 'Caução'], ['seguro_fianca', 'Seguro fiança'], ['credpago', 'CredPago'],
+  ['titulo_capitalizacao', 'Título de capitalização'], ['sem_garantia', 'Sem garantia'],
+];

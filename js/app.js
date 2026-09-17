@@ -1,6 +1,7 @@
 // Sistema de Gestão de Locação · Projetar Imóveis
 // Rotas: #/clientes · #/clientes/novo · #/clientes/<id>/<aba>
 //        #/imoveis  · #/imoveis/novo  · #/imoveis/<id>/<aba>
+//        #/negociacoes · #/negociacoes/novo[?imovel=<id>] · #/negociacoes/<id>/<aba>
 
 import { sb } from './supabase.js';
 import { esc, icone, iniciais } from './util.js';
@@ -10,6 +11,9 @@ import { telaFicha } from './telas/ficha.js';
 import { telaImoveisLista } from './telas/imoveis-lista.js';
 import { telaImovelNovo } from './telas/imoveis-novo.js';
 import { telaImovelFicha } from './telas/imoveis-ficha.js';
+import { telaNegociacoesLista } from './telas/negociacoes-lista.js';
+import { telaNegociacaoNova } from './telas/negociacoes-nova.js';
+import { telaNegociacaoFicha } from './telas/negociacoes-ficha.js';
 
 const app = document.getElementById('app');
 let sessao = null;
@@ -18,6 +22,7 @@ let temAcesso = false;
 const MENU = [
   ['Clientes', 'users', '#/clientes'],
   ['Imóveis', 'home', '#/imoveis'],
+  ['Negociações', 'handshake', '#/negociacoes'],
   ['Contratos', 'contract', null],
   ['Financeiro', 'wallet', null],
 ];
@@ -128,6 +133,17 @@ function rotear() {
     if (ficha) return telaImovelFicha(conteudo, ficha[1], ficha[2] || 'dados');
     if (hash !== '#/imoveis') history.replaceState(null, '', '#/imoveis');
     return telaImoveisLista(conteudo);
+  }
+
+  if (hash.startsWith('#/negociacoes')) {
+    const conteudo = montarLayout('Negociações');
+    window.scrollTo(0, 0);
+    const nova = hash.match(/^#\/negociacoes\/novo(?:\?imovel=([0-9a-f-]{36}))?$/);
+    if (nova) return telaNegociacaoNova(conteudo, nova[1] || null);
+    const ficha = hash.match(/^#\/negociacoes\/([0-9a-f-]{36})(?:\/([a-z]+))?$/);
+    if (ficha) return telaNegociacaoFicha(conteudo, ficha[1], ficha[2] || 'resumo');
+    if (hash !== '#/negociacoes') history.replaceState(null, '', '#/negociacoes');
+    return telaNegociacoesLista(conteudo);
   }
 
   const conteudo = montarLayout('Clientes');

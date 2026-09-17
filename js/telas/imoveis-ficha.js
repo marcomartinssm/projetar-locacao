@@ -92,7 +92,10 @@ function cabecalho({ imovel: i, proprietarios, contas }, aba) {
         </div>
         ${selos ? `<div class="chips-mini">${selos}</div>` : ''}
       </div>
-      <a class="btn btn-secundario" href="#/imoveis/${i.id}/editar">${icone('edit')}<span>Editar</span></a>
+      <div class="ficha-botoes">
+        <a class="btn btn-secundario" href="#/imoveis/${i.id}/editar">${icone('edit')}<span>Editar</span></a>
+        <a class="btn btn-primario" href="#/negociacoes/novo?imovel=${i.id}">${icone('handshake')}<span>Nova negociação</span></a>
+      </div>
     </section>
     <div class="abas" role="tablist">
       ${ABAS.map(([chave, texto, pronta]) => {

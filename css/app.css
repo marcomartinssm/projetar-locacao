@@ -273,7 +273,7 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 .capa-imovel { width: 112px; height: 80px; flex-shrink: 0; border-radius: 8px; background: linear-gradient(135deg, var(--vinho-palido), #efe1e7); color: var(--vinho-claro); display: flex; align-items: center; justify-content: center; }
 
 .busca-cliente { display: flex; flex-direction: column; gap: 8px; }
-.busca-cliente .busca { background: var(--branco); border-style: dashed; border-color: var(--vinho-claro); }
+.busca-cliente .busca { flex: none; background: var(--branco); border-style: dashed; border-color: var(--vinho-claro); }
 .busca-cliente-resultados { display: flex; flex-direction: column; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--branco); box-shadow: var(--sombra); overflow: hidden; }
 .busca-cliente-resultados > p { padding: 12px 14px; }
 .resultado-cliente { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; border-top: 1px solid var(--linha); background: transparent; text-align: left; cursor: pointer; }
@@ -379,6 +379,42 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 @media (max-width: 960px) {
   .aud-linha { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .aud-linha.cabecalho { display: none; }
+}
+
+/* ---------- negociações ---------- */
+.pilha { display: flex; flex-direction: column; gap: 20px; }
+.tabela-negociacoes .linha { grid-template-columns: 56px 92px minmax(0, 2fr) minmax(0, 1.5fr) 116px minmax(0, 1fr) 140px 16px; }
+.situacao-imovel.neg-em_negociacao { background: var(--ouro-palido); color: var(--ouro-escuro); }
+.situacao-imovel.neg-fechada { background: var(--ok-palido); color: var(--ok); }
+.situacao-imovel.neg-contrato_gerado { background: var(--vinho-palido); color: var(--vinho-escuro); }
+.situacao-imovel.neg-cancelada { background: #f1eeef; color: var(--apagado); }
+.icone-ficha { width: 56px; height: 56px; flex-shrink: 0; border-radius: 12px; background: var(--vinho-palido); color: var(--vinho); display: flex; align-items: center; justify-content: center; }
+.ficha-botoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.btn-perigo { background: var(--erro); border-color: var(--erro); color: var(--branco); }
+.btn-perigo:hover { background: #963818; color: var(--branco); }
+.capa-mini { width: 48px; height: 38px; flex-shrink: 0; border-radius: 8px; background: var(--vinho-palido); color: var(--vinho-claro); display: flex; align-items: center; justify-content: center; }
+.resultado-cliente .situacao-imovel { margin-left: auto; }
+.sub-bloco { display: flex; flex-direction: column; gap: 10px; }
+.sub-titulo { font-size: 12px; font-weight: 600; }
+.lista-busca:not(:first-child) { margin-top: 2px; }
+.conferencia { gap: 6px; border-color: #ead9b8; }
+.conferencia.ok { border-color: #cfe6d7; }
+.conferencia .apoio { padding-bottom: 6px; }
+.conf-linha { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--linha); }
+.conf-icone { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.conf-icone.ok { background: var(--ok-palido); color: var(--ok); }
+.conf-icone.atencao { background: var(--ouro-palido); color: var(--ouro-escuro); }
+.conf-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.conf-info strong { font-size: 14px; font-weight: 600; }
+.conf-info strong .t-muted { font-weight: 500; }
+.conf-info small { font-size: 12px; color: var(--apagado); }
+.conf-info small.t-ouro { color: var(--ouro-escuro); }
+.contato-info a strong { color: inherit; }
+
+@media (max-width: 960px) {
+  .tabela-negociacoes .linha { min-width: 900px; }
+  .ficha-botoes { justify-content: flex-start; }
+  .conf-linha { flex-wrap: wrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {

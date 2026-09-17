@@ -2,7 +2,7 @@
 // Os registros são gravados pelo banco automaticamente e não podem ser alterados.
 
 import { sb } from '../supabase.js';
-import { esc, mensagemErro } from '../util.js';
+import { esc, formatarData, mensagemErro, SITUACOES_NEGOCIACAO, SITUACOES_IMOVEL, GARANTIAS } from '../util.js';
 
 const POR_PAGINA = 50;
 
@@ -19,6 +19,8 @@ const TABELAS = {
   loc_imoveis_contas: 'Conta do imóvel',
   loc_imoveis_fotos: 'Foto',
   loc_imoveis_anexos: 'Anexo',
+  loc_negociacoes: 'Dados da negociação',
+  loc_negociacoes_pessoas: 'Pessoa da negociação',
 };
 
 const ACOES = {
@@ -55,16 +57,36 @@ const CAMPOS = {
   valor: 'Valor', valor_fundo_reserva: 'Fundo de reserva', dia_vencimento: 'Dia de vencimento',
   contato_nome: 'Contato', contato_telefone: 'Telefone do contato', contato_email: 'E-mail do contato',
   portal_url: 'Portal', portal_usuario: 'Usuário do portal', legenda: 'Legenda', ordem: 'Ordem', capa: 'Capa',
+  locatario_cliente_id: 'Locatário', data_negociacao: 'Data da negociação', prazo_meses: 'Prazo (meses)',
+  inicio_previsto: 'Início previsto', garantia_tipo: 'Garantia', corretor_id: 'Corretor que alugou', captador_id: 'Captador',
+  fechada_em: 'Fechada em', cancelada_em: 'Cancelada em', motivo_cancelamento: 'Motivo do cancelamento',
+  anotacoes: 'Anotações', papel: 'Papel', codigo: 'Código',
 };
 
-const OCULTOS = new Set(['id', 'cliente_id', 'imovel_id', 'criado_em', 'atualizado_em', 'senha_segredo_id']);
+// Códigos gravados no banco → texto
+const VALORES = {
+  situacao: Object.fromEntries([...SITUACOES_NEGOCIACAO, ...SITUACOES_IMOVEL]),
+  garantia_tipo: Object.fromEntries(GARANTIAS),
+  papel: { solidario: 'Locatário solidário', fiador: 'Fiador' },
+};
+
+// Campos que guardam o id de uma ficha de cliente ou de alguém da equipe: mostram o nome.
+const CAMPOS_ID = ['locatario_cliente_id', 'corretor_id', 'captador_id', 'titular_cliente_id', 'empresa_cliente_id', 'cliente_vinculado_id'];
+// Nestas tabelas o cliente_id é a pessoa incluída (e não a própria ficha).
+const TABELAS_PESSOA = new Set(['loc_negociacoes_pessoas', 'loc_imoveis_proprietarios']);
+const nomes = new Map();
+
+const OCULTOS = new Set(['id', 'cliente_id', 'imovel_id', 'negociacao_id', 'criado_em', 'atualizado_em', 'senha_segredo_id']);
 
 const dataHora = (iso) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
 
 const nomeCampo = (campo) => CAMPOS[campo] ?? (campo.charAt(0).toUpperCase() + campo.slice(1)).replace(/_/g, ' ');
 
-function valorTexto(valor) {
+function valorTexto(valor, campo) {
   if (valor === null || valor === undefined || valor === '') return '—';
+  if (nomes.has(valor)) return nomes.get(valor);
+  if (VALORES[campo]?.[valor]) return VALORES[campo][valor];
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return formatarData(valor);
   if (valor === true) return 'Sim';
   if (valor === false) return 'Não';
   const texto = typeof valor === 'object' ? JSON.stringify(valor) : String(valor);
@@ -92,6 +114,11 @@ function resumo(registro) {
   const pegar = (chave) => (registro.acao === 'alterar'
     ? (alteracoes[chave]?.para ?? alteracoes[chave]?.de)
     : alteracoes[chave]);
+  if (TABELAS_PESSOA.has(registro.tabela)) {
+    const nome = nomes.get(pegar('cliente_id'));
+    const papel = VALORES.papel[pegar('papel')];
+    if (nome) return papel ? `${nome} (${papel})` : nome;
+  }
   for (const chave of ['nome', 'numero', 'email', 'descricao', 'banco_nome', 'pix_chave', 'tipo', 'arquivo_path']) {
     const valor = pegar(chave);
     if (valor != null && valor !== '') {
@@ -106,7 +133,7 @@ function mudancas(registro) {
   const itens = Object.entries(registro.alteracoes || {}).filter(([campo]) => !OCULTOS.has(campo));
   if (!itens.length) return '';
   return `<ul class="aud-mudancas">${itens.map(([campo, v]) =>
-    `<li><b>${esc(nomeCampo(campo))}:</b> ${esc(valorTexto(v?.de))} → ${esc(valorTexto(v?.para))}</li>`).join('')}</ul>`;
+    `<li><b>${esc(nomeCampo(campo))}:</b> ${esc(valorTexto(v?.de, campo))} → ${esc(valorTexto(v?.para, campo))}</li>`).join('')}</ul>`;
 }
 
 function linha(registro) {
@@ -120,6 +147,28 @@ function linha(registro) {
       <span>${esc(TABELAS[registro.tabela] ?? registro.tabela)}${identificacao ? `: <strong>${esc(identificacao)}</strong>` : ''}${mudancas(registro)}</span>
       <span class="aud-origem">${esc(registro.ip || '—')}<small>${esc(navegadorCurto(registro.navegador))}</small></span>
     </div>`;
+}
+
+// Busca de uma vez os nomes das fichas e da equipe citadas nos registros.
+async function buscarNomes(lista) {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const ids = new Set();
+  for (const r of lista) {
+    const campos = TABELAS_PESSOA.has(r.tabela) ? [...CAMPOS_ID, 'cliente_id'] : CAMPOS_ID;
+    for (const campo of campos) {
+      const v = r.alteracoes?.[campo];
+      for (const valor of (v && typeof v === 'object' ? [v.de, v.para] : [v])) {
+        if (typeof valor === 'string' && uuid.test(valor) && !nomes.has(valor)) ids.add(valor);
+      }
+    }
+  }
+  if (!ids.size) return;
+  const listaIds = [...ids];
+  const [clientes, equipe] = await Promise.all([
+    sb.from('cad_clientes').select('id, nome').in('id', listaIds),
+    sb.from('loc_equipe').select('id, nome').in('id', listaIds),
+  ]);
+  for (const item of [...(clientes.data ?? []), ...(equipe.data ?? [])]) nomes.set(item.id, item.nome);
 }
 
 export async function renderAuditoria(caixa, { entidade, entidadeId }) {
@@ -150,6 +199,7 @@ export async function renderAuditoria(caixa, { entidade, entidadeId }) {
       lista.innerHTML = `<div class="vazio">${esc(mensagemErro(error))}</div>`;
       return;
     }
+    await buscarNomes(data);
     registros = registros.concat(data);
     if (!registros.length) {
       lista.innerHTML = '<p class="t-faint">Nenhum registro ainda.</p>';
