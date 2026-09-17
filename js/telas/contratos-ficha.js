@@ -7,13 +7,15 @@ import {
 } from '../util.js';
 import { limparErros, mostrarErros, mostrarErroForm } from '../formulario.js';
 import { enderecoImovel, textoPercentual } from '../imovel-form.js';
-import { montarFormContrato, lerContrato } from '../contrato-form.js';
+import { montarFormContrato, lerContrato, carregarSeguradoras, guardarSeguradoras } from '../contrato-form.js';
+import { cartaoConta, SELECT_CONTAS } from './imoveis-contas.js';
 import { situacaoContrato } from './contratos-lista.js';
 
 const ABAS = [
   ['resumo', 'Resumo', true],
   ['partes', 'Partes', true],
   ['garantia', 'Garantia', true],
+  ['contas', 'Contas do imóvel', true],
   ['cobrancas', 'Cobranças', false],
   ['repasses', 'Repasses', false],
   ['auditoria', 'Auditoria', true],
@@ -52,6 +54,7 @@ export async function telaContratoFicha(el, id, abaPedida) {
   if (editar) renderEditar(caixa, ficha, recarregar);
   else if (aba === 'partes') renderPartes(caixa, ficha);
   else if (aba === 'garantia') renderGarantia(caixa, ficha);
+  else if (aba === 'contas') renderContasImovel(caixa, ficha);
   else if (aba === 'auditoria') import('../componentes/auditoria.js').then((m) => m.renderAuditoria(caixa, { entidade: 'contrato', entidadeId: id }));
   else renderResumo(caixa, ficha);
 }
@@ -256,13 +259,43 @@ function renderGarantia(caixa, { c, pessoas }) {
     </div>`;
 }
 
+// ---------- aba Contas do imóvel (só para consultar) ----------
+async function renderContasImovel(caixa, { c }) {
+  caixa.innerHTML = '<div class="carregando">Carregando contas do imóvel…</div>';
+  const { data, error } = await sb.from('loc_imoveis_contas').select(SELECT_CONTAS).eq('imovel_id', c.imovel.id).order('criado_em');
+  if (!caixa.isConnected) return;
+  if (error) return void (caixa.innerHTML = `<div class="card vazio">${esc(mensagemErro(error))}</div>`);
+
+  const atuais = data.filter((conta) => conta.ativo);
+  const anteriores = data.filter((conta) => !conta.ativo);
+  const card = (conta) => cartaoConta(conta, { acoes: false, senha: false });
+
+  caixa.innerHTML = `
+    <section class="card secao-card">
+      <div class="secao-cabecalho">
+        <h2 class="h-card">Contas do imóvel</h2>
+        <a class="btn btn-secundario btn-peq" href="#/imoveis/${c.imovel.id}/contas">${icone('arrowUpRight', 14)}<span>Abrir na ficha do imóvel</span></a>
+      </div>
+      <p class="apoio">Cadastro das contas do imóvel (IPTU, água, luz, lixo, condomínio), só para consultar. Para mudar alguma coisa, use a ficha do imóvel. Os lançamentos de cada mês entram nas próximas etapas do sistema.</p>
+    </section>
+    ${atuais.length ? `<div class="contas-grade">${atuais.map(card).join('')}</div>` : '<div class="card vazio">Este imóvel não tem contas cadastradas.</div>'}
+    ${anteriores.length ? `
+      <details class="contas-anteriores">
+        <summary>Contas anteriores (${anteriores.length})</summary>
+        <div class="contas-grade">${anteriores.map(card).join('')}</div>
+      </details>` : ''}`;
+}
+
 // ---------- Editar ----------
-function renderEditar(caixa, { c, pessoas }, recarregar) {
+async function renderEditar(caixa, { c, pessoas }, recarregar) {
   const voltar = () => { location.hash = `#/contratos/${c.id}/resumo`; };
   caixa.innerHTML = '<h2 class="h-card">Editar contrato</h2><div id="form-caixa"></div>';
+  const seguradoras = await carregarSeguradoras();
+  if (!caixa.isConnected) return;
 
   montarFormContrato(caixa.querySelector('#form-caixa'), {
     c,
+    seguradoras,
     fiadores: pessoas.filter((p) => p.papel === 'fiador').map((p) => p.cliente),
     textoBotao: 'Salvar alterações',
     aoCancelar: voltar,
@@ -278,6 +311,7 @@ function renderEditar(caixa, { c, pessoas }, recarregar) {
       botao.disabled = false;
       if (error) return mostrarErroForm(form, '.erro-form', mensagemErro(error));
 
+      await guardarSeguradoras(dados);
       toast('Contrato salvo.');
       voltar();
       recarregar();

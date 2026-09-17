@@ -16,6 +16,7 @@ export function campo(nome, rotulo, valor = '', o = {}) {
     o.maxlength ? `maxlength="${o.maxlength}"` : '',
     o.mascara ? `data-mascara="${o.mascara}"` : '',
     o.autocomplete ? `autocomplete="${o.autocomplete}"` : '',
+    o.lista ? `list="${o.lista}"` : '',
   ].filter(Boolean).join(' ');
   return `<div class="campo ${o.largo ? 'largo' : ''}" data-campo="${nome}">
       <label for="f-${nome}">${rotulo}</label>

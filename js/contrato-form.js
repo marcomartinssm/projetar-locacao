@@ -1,9 +1,11 @@
 // Campos do contrato, usados no "Gerar contrato" (a partir da negociação) e na edição da ficha.
 
+
 import {
   esc, icone, iniciais, formatarData, formatarNumeroBR, lerNumeroBR, rotulo,
   GARANTIAS, FORMAS_COBRANCA, INDICES_REAJUSTE, FORMAS_INTERMEDIACAO,
 } from './util.js';
+import { sb } from './supabase.js';
 import { campo, select, campoTexto } from './formulario.js';
 import { textoPercentual } from './imovel-form.js';
 
@@ -39,6 +41,18 @@ export function calcularContrato({ inicio, prazo, dia, forma, indice }) {
   return conta;
 }
 
+// A lista de seguradoras é um cadastro: quem digitar um nome novo faz ele entrar na lista.
+export async function carregarSeguradoras() {
+  const { data, error } = await sb.from('loc_seguradoras').select('nome').eq('ativo', true).order('nome');
+  return error ? [] : data.map((s) => s.nome);
+}
+
+export async function guardarSeguradoras(dados) {
+  for (const nome of [dados.garantia_seguradora, dados.seguro_seguradora]) {
+    if (nome) await sb.rpc('loc_guardar_seguradora', { p_nome: nome });
+  }
+}
+
 const leitura = (nome, rotuloCampo, dica) => `
   <div class="campo">
     <label>${rotuloCampo}</label>
@@ -48,13 +62,13 @@ const leitura = (nome, rotuloCampo, dica) => `
 
 // ---------- montagem ----------
 // c: contrato salvo (ou {} com os padrões vindos da negociação), fiadores: fichas vindas da negociação
-export function montarFormContrato(el, { c = {}, garantiaTipo, fiadores = [], textoBotao, aoCancelar, aoSalvar }) {
+export function montarFormContrato(el, { c = {}, garantiaTipo, fiadores = [], seguradoras = [], textoBotao, aoCancelar, aoSalvar }) {
   const novo = !c.id;
   const gar = garantiaTipo || c.garantia_tipo || 'sem_garantia';
   const camposGarantia = {
     caucao: [['garantia_valor', 'Valor da caução (R$)', decimal(c.garantia_valor), 'decimal']],
     seguro_fianca: [
-      ['garantia_seguradora', 'Seguradora', c.garantia_seguradora], ['garantia_apolice', 'Nº da apólice', c.garantia_apolice],
+      ['garantia_seguradora', 'Seguradora', c.garantia_seguradora, 'seguradora'], ['garantia_apolice', 'Nº da apólice', c.garantia_apolice],
       ['garantia_inicio', 'Início da vigência', c.garantia_inicio, 'date'], ['garantia_fim', 'Fim da vigência', c.garantia_fim, 'date'],
       ['garantia_valor', 'Valor (R$)', decimal(c.garantia_valor), 'decimal'],
     ],
@@ -68,9 +82,12 @@ export function montarFormContrato(el, { c = {}, garantiaTipo, fiadores = [], te
   const campoGarantia = ([nome, rotuloCampo, valor, tipo]) => campo(nome, rotuloCampo, valor, {
     tipo: tipo === 'date' ? 'date' : 'text',
     inputmode: tipo === 'decimal' ? 'decimal' : undefined,
+    lista: tipo === 'seguradora' ? 'lista-seguradoras' : undefined,
+    placeholder: tipo === 'seguradora' ? 'Escolha na lista ou digite uma nova' : undefined,
   });
 
   el.innerHTML = `
+    <datalist id="lista-seguradoras">${seguradoras.map((nome) => `<option value="${esc(nome)}"></option>`).join('')}</datalist>
     <form class="card painel form-contrato" novalidate>
       <h2 class="h-secao">Datas e cobrança</h2>
       <div class="grade-3">
@@ -118,7 +135,7 @@ export function montarFormContrato(el, { c = {}, garantiaTipo, fiadores = [], te
       <h2 class="h-secao">Seguro incêndio</h2>
       <label class="check"><input type="checkbox" name="seguro_incendio" ${c.seguro_incendio ? 'checked' : ''}><span>Tem seguro incêndio</span></label>
       <div class="grade-3" data-bloco-seguro>
-        ${campo('seguro_seguradora', 'Seguradora', c.seguro_seguradora)}
+        ${campo('seguro_seguradora', 'Seguradora', c.seguro_seguradora, { lista: 'lista-seguradoras', placeholder: 'Escolha na lista ou digite uma nova' })}
         ${campo('seguro_apolice', 'Nº da apólice', c.seguro_apolice)}
         ${campo('seguro_valor_anual', 'Valor anual (R$)', decimal(c.seguro_valor_anual), { inputmode: 'decimal' })}
         ${campo('seguro_inicio', 'Início da vigência', c.seguro_inicio, { tipo: 'date' })}

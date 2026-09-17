@@ -3,7 +3,7 @@
 import { sb } from '../supabase.js';
 import { esc, icone, formatarMoeda, mensagemErro, toast, rotulo, GARANTIAS } from '../util.js';
 import { limparErros, mostrarErros, mostrarErroForm } from '../formulario.js';
-import { montarFormContrato, lerContrato } from '../contrato-form.js';
+import { montarFormContrato, lerContrato, carregarSeguradoras, guardarSeguradoras } from '../contrato-form.js';
 import { carregarImovelNegociacao, tituloImovel } from '../componentes/escolha-imovel.js';
 
 export async function telaContratoGerar(el, negociacaoId) {
@@ -30,10 +30,12 @@ export async function telaContratoGerar(el, negociacaoId) {
 
   let imovel;
   let conferencia;
+  let seguradoras;
   try {
-    [imovel, conferencia] = await Promise.all([
+    [imovel, conferencia, seguradoras] = await Promise.all([
       carregarImovelNegociacao(n.imovel_id),
       sb.rpc('loc_conferir_negociacao', { p_negociacao_id: n.id }).then((r) => { if (r.error) throw r.error; return r.data; }),
+      carregarSeguradoras(),
     ]);
   } catch (e) {
     el.innerHTML = `<div class="card vazio">${esc(mensagemErro(e))}</div>`;
@@ -76,6 +78,7 @@ export async function telaContratoGerar(el, negociacaoId) {
   const form = montarFormContrato(el.querySelector('#form-caixa'), {
     garantiaTipo: n.garantia_tipo,
     fiadores,
+    seguradoras,
     c: {
       inicio: n.inicio_previsto,
       prazo_meses: n.prazo_meses,
@@ -102,6 +105,7 @@ export async function telaContratoGerar(el, negociacaoId) {
       botao.disabled = false;
       if (error) return mostrarErroForm(formulario, '.erro-form', mensagemErro(error));
 
+      await guardarSeguradoras(dados);
       toast('Contrato criado.');
       location.hash = `#/contratos/${data}`;
     },

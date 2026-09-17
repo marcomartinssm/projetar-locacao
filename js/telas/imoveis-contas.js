@@ -119,7 +119,8 @@ function caixaSenha(contaId) {
     </div>`;
 }
 
-function cartaoConta(c) {
+// acoes/senha ficam de fora quando a conta é só para consulta (ex.: aba do contrato)
+export function cartaoConta(c, { acoes = true, senha = true } = {}) {
   const cfg = CONFIG[c.tipo];
   const campos = [
     dado(cfg.identificador, c.identificador),
@@ -145,10 +146,10 @@ function cartaoConta(c) {
           </div>
           ${c.empresa ? linkCliente(c.empresa) : '<small class="t-faint">Empresa não informada</small>'}
         </div>
-        <div class="contato-acoes">
+        ${acoes ? `<div class="contato-acoes">
           <button type="button" class="icon-btn" data-editar="${c.id}" aria-label="Editar conta">${icone('edit')}</button>
           <button type="button" class="icon-btn" data-excluir="${c.id}" aria-label="Excluir conta">${icone('trash')}</button>
-        </div>
+        </div>` : ''}
       </div>
       <div class="dados-grade">${campos}</div>
       ${temContato ? `
@@ -166,7 +167,9 @@ function cartaoConta(c) {
             ${dado('Usuário', c.portal_usuario)}
           </div>
           ${c.senha_segredo_id
-            ? `${caixaSenha(c.id)}<span class="senha-nota">Senha guardada protegida. Cada visualização fica registrada.</span>`
+            ? (senha
+              ? `${caixaSenha(c.id)}<span class="senha-nota">Senha guardada protegida. Cada visualização fica registrada.</span>`
+              : '<span class="senha-nota">Senha guardada protegida. Para ver, abra a conta na ficha do imóvel.</span>')
             : '<span class="senha-nota">Sem senha guardada.</span>'}
         </div>` : ''}
       ${c.observacoes ? `<p class="texto-livre conta-obs">${esc(c.observacoes)}</p>` : ''}
