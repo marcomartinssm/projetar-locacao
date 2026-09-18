@@ -9,6 +9,7 @@ import { limparErros, mostrarErros, mostrarErroForm } from '../formulario.js';
 import { enderecoImovel, textoPercentual } from '../imovel-form.js';
 import { montarFormContrato, lerContrato, carregarSeguradoras, guardarSeguradoras } from '../contrato-form.js';
 import { cartaoConta, SELECT_CONTAS } from './imoveis-contas.js';
+import { renderFinanceiro } from './contratos-financeiro.js';
 import { situacaoContrato } from './contratos-lista.js';
 
 const ABAS = [
@@ -16,8 +17,7 @@ const ABAS = [
   ['partes', 'Partes', true],
   ['garantia', 'Garantia', true],
   ['contas', 'Contas do imóvel', true],
-  ['cobrancas', 'Cobranças', false],
-  ['repasses', 'Repasses', false],
+  ['financeiro', 'Financeiro', true],
   ['auditoria', 'Auditoria', true],
 ];
 const CLIENTE = 'id, codigo, nome, cpf_cnpj, tipo_pessoa';
@@ -55,6 +55,7 @@ export async function telaContratoFicha(el, id, abaPedida) {
   else if (aba === 'partes') renderPartes(caixa, ficha);
   else if (aba === 'garantia') renderGarantia(caixa, ficha);
   else if (aba === 'contas') renderContasImovel(caixa, ficha);
+  else if (aba === 'financeiro') renderFinanceiro(caixa, ficha);
   else if (aba === 'auditoria') import('../componentes/auditoria.js').then((m) => m.renderAuditoria(caixa, { entidade: 'contrato', entidadeId: id }));
   else renderResumo(caixa, ficha);
 }

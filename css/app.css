@@ -435,6 +435,34 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
   .resumo-origem .ok-linha { margin-left: 0; }
 }
 
+/* ---------- financeiro do contrato ---------- */
+.faixa-meses { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 20px; }
+.faixa-meses > strong { font-size: 15px; }
+.faixa-meses .apoio { flex: 1; min-width: 200px; }
+.faixa-acoes { margin-left: auto; display: flex; flex-wrap: wrap; gap: 10px; }
+.tabela-meses .linha { grid-template-columns: 90px 96px 96px minmax(0, 1.4fr) minmax(0, 1.4fr) 110px 110px 16px; min-height: 58px; }
+.tabela-meses .linha[role="button"] { cursor: pointer; }
+.tabela-meses .linha[role="button"]:hover { background: var(--fundo); }
+.tabela-meses .linha.fora { opacity: 0.5; }
+.tabela-meses .valor-celula { display: flex; flex-direction: column; gap: 2px; }
+.tabela-meses .valor-celula small { font-size: 11px; color: var(--apagado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rodape-meses { background: var(--fundo); font-weight: 700; border-top: 1px solid var(--borda); }
+.situacao-imovel.mov-prev { background: #f1eeef; color: var(--apagado); }
+.situacao-imovel.mov-abre { background: var(--ouro-palido); color: var(--ouro-escuro); }
+.situacao-imovel.mov-pago { background: var(--ok-palido); color: var(--ok); }
+.situacao-imovel.mov-canc { background: #f1eeef; color: var(--fraco); }
+.situacao-imovel.mov-atrasado { background: var(--erro-palido); color: var(--erro); }
+.valor-lanc { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.total-lado { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--borda); font-weight: 700; }
+.total-lado strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.t-ok { color: var(--ok); }
+.t-erro { color: var(--erro); }
+
+@media (max-width: 960px) {
+  .tabela-meses .linha { min-width: 900px; }
+  .faixa-acoes { margin-left: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

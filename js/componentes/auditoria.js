@@ -28,6 +28,8 @@ const TABELAS = {
   loc_contratos: 'Dados do contrato',
   loc_contratos_pessoas: 'Pessoa do contrato',
   loc_contratos_proprietarios: 'Proprietário do contrato',
+  loc_movimentos: 'Movimento do mês',
+  loc_lancamentos: 'Lançamento',
 };
 
 const ACOES = {
@@ -81,6 +83,8 @@ const CAMPOS = {
   taxa_adm_multa_rescisoria: 'Taxa adm sobre multa rescisória', intermediacao_forma: 'Intermediação cobrada',
   intermediacao_parcelas: 'Parcelas da intermediação', intermediacao_a_partir_de: 'Intermediação a partir do aluguel',
   texto_acerto_contas: 'Texto do acerto de contas', encerrado_em: 'Encerrado em', encerrado_motivo: 'Motivo do encerramento',
+  competencia: 'Mês', vencimento: 'Vencimento', pago_em: 'Pago em', lado: 'Lado', automatico: 'Automático',
+  conta_imovel_id: 'Conta do imóvel', destino: 'Destino do dinheiro',
 };
 
 // Códigos gravados no banco → texto
@@ -90,6 +94,8 @@ const VALORES = {
   indice_reajuste: Object.fromEntries(INDICES_REAJUSTE),
   intermediacao_forma: Object.fromEntries(FORMAS_INTERMEDIACAO),
   repasse_tipo: { dia_fixo: 'Fixo, todo mês', apos_recebimento: 'Após o recebimento' },
+  lado: { locatario: 'Locatário', proprietario: 'Proprietário' },
+  tipo: { aluguel: 'Aluguel', taxa_administracao: 'Taxa de administração', taxa_intermediacao: 'Taxa de intermediação', conta_extra: 'Conta extra', ajuste: 'Ajuste' },
   garantia_tipo: Object.fromEntries(GARANTIAS),
   papel: { solidario: 'Locatário solidário', fiador: 'Fiador' },
 };
@@ -100,7 +106,7 @@ const CAMPOS_ID = ['locatario_cliente_id', 'corretor_id', 'captador_id', 'titula
 const TABELAS_PESSOA = new Set(['loc_negociacoes_pessoas', 'loc_imoveis_proprietarios', 'loc_contratos_pessoas', 'loc_contratos_proprietarios']);
 const nomes = new Map();
 
-const OCULTOS = new Set(['id', 'cliente_id', 'imovel_id', 'negociacao_id', 'contrato_id', 'criado_em', 'atualizado_em', 'senha_segredo_id']);
+const OCULTOS = new Set(['id', 'cliente_id', 'imovel_id', 'negociacao_id', 'contrato_id', 'movimento_id', 'criado_em', 'atualizado_em', 'senha_segredo_id']);
 
 const dataHora = (iso) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
 
