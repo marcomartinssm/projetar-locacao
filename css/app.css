@@ -243,9 +243,22 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 
 /* ---------- telas menores ---------- */
 @media (max-width: 960px) {
-  .menu, .topo-email, .topo-divisor, .topo-sistema { display: none; }
+  .topo-email, .topo-divisor, .topo-sistema { display: none; }
+  /* no celular o menu vira uma barra fixa embaixo da tela */
+  .menu {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    width: auto; flex-direction: row; justify-content: space-around; gap: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-right: none; border-top: 1px solid var(--borda);
+    box-shadow: 0 -2px 12px rgba(160, 73, 106, 0.10);
+  }
+  .menu-item { flex: 1; flex-direction: column; justify-content: center; gap: 3px; height: 54px; padding: 0 2px; font-size: 11px; text-align: center; }
+  .menu-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .menu-item.desativado { display: none; }
+  .toast { left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); max-width: none; }
+
   .topo { padding: 0 16px; }
-  .conteudo { padding: 20px 16px 40px; }
+  .conteudo { padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
   .grade-cards, .grade-2, .grade-3, .dados-grade { grid-template-columns: minmax(0, 1fr); }
   .campo.largo { grid-column: auto; }
   .filtros-linha, .ficha-topo, .pessoa { flex-wrap: wrap; }
