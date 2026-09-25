@@ -26,6 +26,17 @@ function mesAtual() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+// Visão da empresa: o que entra fica verde com "+", o que sai fica vermelho com "−".
+const valorEmpresa = (valor) => {
+  const n = Number(valor) || 0;
+  const sinal = n < 0 ? '−' : '+';
+  return `<strong class="${n < 0 ? 't-erro' : 't-ok'}">${sinal} ${esc(formatarMoeda(Math.abs(n)))}</strong>`;
+};
+
+// No lado do proprietário o dinheiro sai da empresa, então o sinal se inverte:
+// o aluguel a repassar é saída; a taxa que a empresa retém é entrada.
+const valorDoLado = (lado, valor) => valorEmpresa(lado === 'proprietario' ? -Number(valor) : Number(valor));
+
 const SITUACAO = {
   previsto: ['Previsto', 'prev'],
   aberto: ['Aberto', 'abre'],
@@ -87,7 +98,6 @@ async function listaMeses(caixa, c, estado, desenhar) {
         <span>Mês</span><span>Movimento</span><span>Vence</span>
         <span class="valor-celula">Cobrar do locatário</span>
         <span class="valor-celula">Repassar ao proprietário</span>
-        <span class="valor-celula">Projetar</span>
         <span>Situação</span><span></span>
       </div>
       ${meses.map((m) => {
@@ -104,18 +114,16 @@ async function listaMeses(caixa, c, estado, desenhar) {
           <span><strong>${esc(mesTexto(m.competencia))}</strong></span>
           <span class="t-muted">${m.codigo ? `nº ${m.codigo}` : '<span class="t-faint">—</span>'}</span>
           <span class="t-muted">${esc(formatarData(m.vencimento))}</span>
-          <span class="valor-celula"><strong>${esc(formatarMoeda(m.receber))}</strong><small>${esc(detalheReceber)}</small></span>
-          <span class="valor-celula"><strong class="${Number(m.repassar) < 0 ? 't-erro' : ''}">${esc(formatarMoeda(m.repassar))}</strong><small>${esc(detalheRepasse)}</small></span>
-          <span class="valor-celula t-ok"><strong>${esc(formatarMoeda(m.projetar))}</strong></span>
+          <span class="valor-celula">${valorEmpresa(m.receber)}<small>${esc(detalheReceber)}</small></span>
+          <span class="valor-celula">${valorEmpresa(-m.repassar)}<small>${esc(detalheRepasse)}</small></span>
           <span>${fora ? '' : selo(m.situacao, m.vencimento < hoje)}</span>
           <span class="seta">${icone('chevronRight')}</span>
         </div>`;
       }).join('')}
       <div class="linha rodape-meses">
         <span>Total</span><span></span><span></span>
-        <span class="valor-celula"><strong>${esc(formatarMoeda(total('receber')))}</strong></span>
-        <span class="valor-celula"><strong>${esc(formatarMoeda(total('repassar')))}</strong></span>
-        <span class="valor-celula t-ok"><strong>${esc(formatarMoeda(total('projetar')))}</strong></span>
+        <span class="valor-celula">${valorEmpresa(total('receber'))}</span>
+        <span class="valor-celula">${valorEmpresa(-total('repassar'))}</span>
         <span></span><span></span>
       </div>
     </section>
@@ -172,15 +180,15 @@ async function detalheMes(caixa, c, estado, desenhar) {
         <strong>${l.codigo ? `<span class="numero-lanc">nº ${l.codigo}</span>` : ''}${esc(l.descricao)}</strong>
         <small>${l.codigo ? `movimento nº ${dados.codigo} · ` : ''}${l.automatico === false ? 'lançado à mão' : l.id ? 'automático do contrato' : 'ainda não lançado'}${l.observacao ? ` · ${esc(l.observacao)}` : ''}</small>
       </div>
-      <strong class="valor-lanc ${Number(l.valor) < 0 ? 't-erro' : ''}">${esc(formatarMoeda(l.valor))}</strong>
+      <span class="valor-lanc">${valorDoLado(l.lado, l.valor)}</span>
       ${l.id && !l.automatico ? `<button type="button" class="icon-btn" data-apagar="${l.id}" aria-label="Apagar lançamento">${icone('trash')}</button>` : ''}
     </div>`;
 
-  const bloco = (titulo, lado, total, cor) => `
+  const bloco = (titulo, lado, total) => `
     <section class="card secao-card">
       <div class="secao-cabecalho"><h2 class="h-card">${titulo}</h2></div>
       <div class="contatos">${doLado(lado).map(linhaLanc).join('') || '<p class="t-faint">Nada neste mês.</p>'}</div>
-      <div class="total-lado"><span>${lado === 'locatario' ? 'Total a cobrar' : 'Repasse'}</span><strong class="${cor}">${esc(formatarMoeda(total))}</strong></div>
+      <div class="total-lado"><span>${lado === 'locatario' ? 'Total a cobrar' : 'Repasse'}</span>${valorDoLado(lado, total)}</div>
     </section>`;
 
   caixa.innerHTML = `
@@ -199,15 +207,15 @@ async function detalheMes(caixa, c, estado, desenhar) {
     </section>
     ${dados.dentro_contrato ? `
       <div class="grade-cards">
-        ${bloco('Cobrar do locatário', 'locatario', dados.receber, '')}
-        ${bloco('Repassar ao proprietário', 'proprietario', dados.repassar, Number(dados.repassar) < 0 ? 't-erro' : 't-ok')}
+        ${bloco('Cobrar do locatário', 'locatario', dados.receber)}
+        ${bloco('Repassar ao proprietário', 'proprietario', dados.repassar)}
       </div>
       <section class="card secao-card">
         <div class="secao-cabecalho"><h2 class="h-card">Fica com a Projetar</h2></div>
         <div class="dados-grade">
-          <div class="dado"><span class="rotulo">Taxa de administração</span><span class="valor">${esc(formatarMoeda(dados.taxa_adm))}</span></div>
-          <div class="dado"><span class="rotulo">Taxa de intermediação</span><span class="valor">${esc(formatarMoeda(dados.intermediacao))}</span></div>
-          <div class="dado"><span class="rotulo">Total do mês</span><span class="valor t-ok"><strong>${esc(formatarMoeda(dados.projetar))}</strong></span></div>
+          <div class="dado"><span class="rotulo">Taxa de administração</span><span class="valor">${valorEmpresa(dados.taxa_adm)}</span></div>
+          <div class="dado"><span class="rotulo">Taxa de intermediação</span><span class="valor">${valorEmpresa(dados.intermediacao)}</span></div>
+          <div class="dado"><span class="rotulo">Total do mês</span><span class="valor">${valorEmpresa(dados.projetar)}</span></div>
         </div>
         <p class="apoio">As contas extras ainda não entram nesta conta: falta combinar para onde vai o dinheiro de cada uma.</p>
         ${dados.movimento_id ? '' : '<p class="apoio">Este mês ainda não virou movimento. Clique em "Gerar movimento" para ele e os lançamentos ganharem número.</p>'}

@@ -453,7 +453,7 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 .faixa-meses > strong { font-size: 15px; }
 .faixa-meses .apoio { flex: 1; min-width: 200px; }
 .faixa-acoes { margin-left: auto; display: flex; flex-wrap: wrap; gap: 10px; }
-.tabela-meses .linha { grid-template-columns: 90px 96px 96px minmax(0, 1.4fr) minmax(0, 1.4fr) 110px 110px 16px; min-height: 58px; }
+.tabela-meses .linha { grid-template-columns: 90px 96px 96px minmax(0, 1.5fr) minmax(0, 1.5fr) 110px 16px; min-height: 58px; }
 .tabela-meses .linha[role="button"] { cursor: pointer; }
 .tabela-meses .linha[role="button"]:hover { background: var(--fundo); }
 .tabela-meses .linha.fora { opacity: 0.5; }
