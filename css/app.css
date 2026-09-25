@@ -465,6 +465,7 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 .situacao-imovel.mov-pago { background: var(--ok-palido); color: var(--ok); }
 .situacao-imovel.mov-canc { background: #f1eeef; color: var(--fraco); }
 .situacao-imovel.mov-atrasado { background: var(--erro-palido); color: var(--erro); }
+.numero-lanc { display: inline-flex; align-items: center; height: 18px; margin-right: 8px; padding: 0 7px; border-radius: 9px; background: #f1ecee; color: var(--apagado); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .valor-lanc { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .total-lado { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--borda); font-weight: 700; }
 .total-lado strong { font-size: 18px; font-variant-numeric: tabular-nums; }

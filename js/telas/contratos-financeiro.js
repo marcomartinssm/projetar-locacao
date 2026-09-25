@@ -144,7 +144,7 @@ async function detalheMes(caixa, c, estado, desenhar) {
     const linhas = await buscarMeses(c.id, mes);
     dados = linhas[0];
     if (dados?.movimento_id) {
-      const r = await sb.from('loc_lancamentos').select('*').eq('movimento_id', dados.movimento_id).order('criado_em');
+      const r = await sb.from('loc_lancamentos').select('*').eq('movimento_id', dados.movimento_id).order('codigo');
       if (r.error) throw r.error;
       lancamentos = r.data;
     }
@@ -168,8 +168,8 @@ async function detalheMes(caixa, c, estado, desenhar) {
     <div class="contato">
       <span class="conta-icone">${icone(l.tipo === 'conta_extra' ? 'receipt' : l.tipo === 'aluguel' ? 'contract' : 'wallet', 16)}</span>
       <div class="contato-info">
-        <strong>${esc(l.descricao)}</strong>
-        <small>${l.automatico === false ? 'lançado à mão' : l.id ? 'automático do contrato' : 'previsto'}${l.observacao ? ` · ${esc(l.observacao)}` : ''}</small>
+        <strong>${l.codigo ? `<span class="numero-lanc">nº ${l.codigo}</span>` : ''}${esc(l.descricao)}</strong>
+        <small>${l.codigo ? `movimento nº ${dados.codigo} · ` : ''}${l.automatico === false ? 'lançado à mão' : l.id ? 'automático do contrato' : 'ainda não lançado'}${l.observacao ? ` · ${esc(l.observacao)}` : ''}</small>
       </div>
       <strong class="valor-lanc ${Number(l.valor) < 0 ? 't-erro' : ''}">${esc(formatarMoeda(l.valor))}</strong>
       ${l.id && !l.automatico ? `<button type="button" class="icon-btn" data-apagar="${l.id}" aria-label="Apagar lançamento">${icone('trash')}</button>` : ''}
@@ -209,6 +209,7 @@ async function detalheMes(caixa, c, estado, desenhar) {
           <div class="dado"><span class="rotulo">Total do mês</span><span class="valor t-ok"><strong>${esc(formatarMoeda(dados.projetar))}</strong></span></div>
         </div>
         <p class="apoio">As contas extras ainda não entram nesta conta: falta combinar para onde vai o dinheiro de cada uma.</p>
+        ${dados.movimento_id ? '' : '<p class="apoio">Este mês ainda é uma previsão. Quando virar movimento, ele e cada lançamento ganham número.</p>'}
       </section>`
       : '<div class="card vazio">Este mês está fora do prazo do contrato.</div>'}`;
 
