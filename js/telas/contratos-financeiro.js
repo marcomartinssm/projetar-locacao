@@ -49,6 +49,18 @@ const selo = (situacao, atrasado) => {
   return `<span class="situacao-imovel mov-${atraso ? 'atrasado' : classe}"><i></i>${atraso ? 'Atrasado' : texto}</span>`;
 };
 
+// O repasse só é liberado depois que o locatário quita o aluguel.
+const REPASSE = {
+  bloqueado: ['Espera o pagamento', 'prev'],
+  liberado: ['Liberado', 'abre'],
+  repassado: ['Repassado', 'pago'],
+};
+const seloRepasse = (m, hoje) => {
+  const [texto, classe] = REPASSE[m.repasse_situacao] ?? ['Espera o pagamento', 'prev'];
+  const atraso = m.repasse_situacao === 'liberado' && m.repasse_previsto && m.repasse_previsto < hoje;
+  return `<span class="situacao-imovel mov-${atraso ? 'atrasado' : classe}"><i></i>${atraso ? 'Repasse atrasado' : texto}</span>`;
+};
+
 // ---------- tela ----------
 export function renderFinanceiro(caixa, ficha) {
   const estado = { de: mesAtual(), mes: null, contas: null };
@@ -95,10 +107,10 @@ async function listaMeses(caixa, c, estado, desenhar) {
     </section>
     <section class="card tabela tabela-meses">
       <div class="linha cabecalho">
-        <span>Mês</span><span>Movimento</span><span>Vence</span>
+        <span>Mês</span><span>Movimento</span>
         <span class="valor-celula">Cobrar do locatário</span>
         <span class="valor-celula">Repassar ao proprietário</span>
-        <span>Situação</span><span></span>
+        <span></span>
       </div>
       ${meses.map((m) => {
         const fora = !m.dentro_contrato;
@@ -113,21 +125,27 @@ async function listaMeses(caixa, c, estado, desenhar) {
         <div class="linha ${fora ? 'fora' : ''}" data-mes="${m.competencia}" role="button" tabindex="0">
           <span><strong>${esc(mesTexto(m.competencia))}</strong></span>
           <span class="t-muted">${m.codigo ? `nº ${m.codigo}` : '<span class="t-faint">—</span>'}</span>
-          <span class="t-muted">${esc(formatarData(m.vencimento))}</span>
-          <span class="valor-celula">${valorEmpresa(m.receber)}<small>${esc(detalheReceber)}</small></span>
-          <span class="valor-celula">${valorEmpresa(-m.repassar)}<small>${esc(detalheRepasse)}</small></span>
-          <span>${fora ? '' : selo(m.situacao, m.vencimento < hoje)}</span>
+          <span class="valor-celula">
+            ${valorEmpresa(m.receber)}
+            <small>vence ${esc(formatarData(m.vencimento))} · ${esc(detalheReceber)}</small>
+            ${fora ? '' : selo(m.situacao, m.vencimento < hoje)}
+          </span>
+          <span class="valor-celula">
+            ${valorEmpresa(-m.repassar)}
+            <small>${m.repasse_previsto ? `repasse ${esc(formatarData(m.repasse_previsto))}` : ''}${detalheRepasse ? ` · ${esc(detalheRepasse)}` : ''}</small>
+            ${fora ? '' : seloRepasse(m, hoje)}
+          </span>
           <span class="seta">${icone('chevronRight')}</span>
         </div>`;
       }).join('')}
       <div class="linha rodape-meses">
-        <span>Total</span><span></span><span></span>
+        <span>Total</span><span></span>
         <span class="valor-celula">${valorEmpresa(total('receber'))}</span>
         <span class="valor-celula">${valorEmpresa(-total('repassar'))}</span>
-        <span></span><span></span>
+        <span></span>
       </div>
     </section>
-    <p class="apoio">Cada mês do contrato já nasce como movimento, com número. Aberto = ainda não foi pago. Atrasado = passou do vencimento. Pago = o locatário pagou. O boleto e o Pix da Unicred entram na etapa seguinte.</p>`;
+    <p class="apoio">Cada mês do contrato já nasce como movimento, com número. Do lado do locatário: Aberto, Atrasado ou Pago. Do lado do proprietário, o repasse fica em <strong>Espera o pagamento</strong> até o locatário quitar; depois vira <strong>Liberado</strong> e, quando você faz, <strong>Repassado</strong>. O boleto e o Pix da Unicred entram na etapa seguinte.</p>`;
 
   caixa.querySelectorAll('[data-andar]').forEach((b) => b.addEventListener('click', () => {
     estado.de = somarMeses(estado.de, Number(b.dataset.andar));
@@ -164,6 +182,7 @@ async function detalheMes(caixa, c, estado, desenhar) {
   if (!caixa.isConnected || !dados) return;
 
   const voltar = () => { estado.mes = null; desenhar(); };
+  const hoje = new Date().toISOString().slice(0, 10);
   const previstos = [
     { lado: 'locatario', tipo: 'aluguel', descricao: `Aluguel de ${mesLongo(mes)}${dados.dias < dados.dias_mes ? ` · ${dados.dias} dias (proporcional)` : ''}`, valor: dados.aluguel },
     { lado: 'proprietario', tipo: 'aluguel', descricao: `Aluguel de ${mesLongo(mes)}`, valor: dados.aluguel },
@@ -184,9 +203,25 @@ async function detalheMes(caixa, c, estado, desenhar) {
       ${l.id && !l.automatico ? `<button type="button" class="icon-btn" data-apagar="${l.id}" aria-label="Apagar lançamento">${icone('trash')}</button>` : ''}
     </div>`;
 
+  const cabecalhoLado = (lado) => (lado === 'locatario'
+    ? `<div class="lado-estado">
+        <span class="t-muted">Vence ${esc(formatarData(dados.vencimento))}${dados.pago_em ? ` · pago em ${esc(formatarData(dados.pago_em))}` : ''}</span>
+        ${selo(dados.situacao, dados.vencimento < hoje)}
+        ${dados.movimento_id && dados.situacao !== 'pago' ? `<button type="button" class="btn btn-primario btn-peq" data-pago>${icone('check', 14)}<span>Marcar como pago</span></button>` : ''}
+        ${dados.movimento_id && dados.situacao === 'pago' ? `<button type="button" class="btn btn-secundario btn-peq" data-reabrir>${icone('undo', 14)}<span>Desfazer pagamento</span></button>` : ''}
+      </div>`
+    : `<div class="lado-estado">
+        <span class="t-muted">Repasse ${dados.repasse_previsto ? esc(formatarData(dados.repasse_previsto)) : '—'}${dados.repassado_em ? ` · feito em ${esc(formatarData(dados.repassado_em))}` : ''}</span>
+        ${seloRepasse(dados, hoje)}
+        ${dados.movimento_id && dados.repasse_situacao === 'liberado' ? `<button type="button" class="btn btn-primario btn-peq" data-repassar>${icone('check', 14)}<span>Marcar repasse como feito</span></button>` : ''}
+        ${dados.movimento_id && dados.repasse_situacao === 'repassado' ? `<button type="button" class="btn btn-secundario btn-peq" data-desfazer-repasse>${icone('undo', 14)}<span>Desfazer repasse</span></button>` : ''}
+        ${dados.movimento_id && dados.repasse_situacao === 'bloqueado' ? '<span class="t-faint">Libera quando o locatário pagar.</span>' : ''}
+      </div>`);
+
   const bloco = (titulo, lado, total) => `
     <section class="card secao-card">
       <div class="secao-cabecalho"><h2 class="h-card">${titulo}</h2></div>
+      ${cabecalhoLado(lado)}
       <div class="contatos">${doLado(lado).map(linhaLanc).join('') || '<p class="t-faint">Nada neste mês.</p>'}</div>
       <div class="total-lado"><span>${lado === 'locatario' ? 'Total a cobrar' : 'Repasse'}</span>${valorDoLado(lado, total)}</div>
     </section>`;
@@ -196,13 +231,10 @@ async function detalheMes(caixa, c, estado, desenhar) {
       <button type="button" class="link-acao" data-voltar>‹ voltar para os 12 meses</button>
       <strong>${esc(mesLongo(mes))}</strong>
       ${dados.codigo ? `<span class="selo-conta atual">Movimento nº ${dados.codigo}</span>` : ''}
-      ${dados.dentro_contrato ? selo(dados.situacao, false) : '<span class="t-faint">fora do prazo do contrato</span>'}
-      <span class="t-muted">Vence ${esc(formatarData(dados.vencimento))}</span>
+      ${dados.dentro_contrato ? '' : '<span class="t-faint">fora do prazo do contrato</span>'}
       <div class="faixa-acoes">
         ${dados.dentro_contrato ? `<button type="button" class="btn btn-secundario btn-peq" data-extra>${icone('plus', 14)}<span>Lançar conta extra</span></button>` : ''}
         ${dados.dentro_contrato && !dados.movimento_id ? `<button type="button" class="btn btn-secundario btn-peq" data-gerar>${icone('check', 14)}<span>Gerar movimento</span></button>` : ''}
-        ${dados.movimento_id && dados.situacao !== 'pago' ? `<button type="button" class="btn btn-primario btn-peq" data-pago>${icone('check', 14)}<span>Marcar como pago</span></button>` : ''}
-        ${dados.movimento_id && dados.situacao === 'pago' ? `<button type="button" class="btn btn-secundario btn-peq" data-reabrir>${icone('undo', 14)}<span>Desfazer pagamento</span></button>` : ''}
       </div>
     </section>
     ${dados.dentro_contrato ? `
@@ -242,6 +274,16 @@ async function detalheMes(caixa, c, estado, desenhar) {
   };
   caixa.querySelector('[data-pago]')?.addEventListener('click', (ev) => mudarSituacao('pago', ev));
   caixa.querySelector('[data-reabrir]')?.addEventListener('click', (ev) => mudarSituacao('aberto', ev));
+
+  const mudarRepasse = async (situacao, ev) => {
+    ev.currentTarget.disabled = true;
+    const { error } = await sb.rpc('loc_movimento_repasse', { p_movimento_id: dados.movimento_id, p_situacao: situacao, p_data: null });
+    if (error) return toast(mensagemErro(error), 'erro');
+    toast(situacao === 'repassado' ? 'Repasse marcado como feito.' : 'Repasse desfeito.');
+    desenhar();
+  };
+  caixa.querySelector('[data-repassar]')?.addEventListener('click', (ev) => mudarRepasse('repassado', ev));
+  caixa.querySelector('[data-desfazer-repasse]')?.addEventListener('click', (ev) => mudarRepasse('liberado', ev));
 
   caixa.querySelectorAll('[data-apagar]').forEach((b) => b.addEventListener('click', async () => {
     b.disabled = true;
