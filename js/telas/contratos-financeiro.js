@@ -1,5 +1,6 @@
 // Aba Financeiro do contrato: sempre 12 meses na tela, o detalhe de cada mês
-// e o lançamento de contas extras. Cada mês lançado vira um movimento com código.
+// e o lançamento de contas extras. Todos os meses do contrato já nascem como
+// movimento numerado quando o contrato é criado.
 
 import { sb } from '../supabase.js';
 import { esc, icone, formatarData, formatarMoeda, lerNumeroBR, mensagemErro, toast } from '../util.js';
@@ -118,7 +119,7 @@ async function listaMeses(caixa, c, estado, desenhar) {
         <span></span><span></span>
       </div>
     </section>
-    <p class="apoio">Previsto = o sistema já sabe o que vai acontecer, mas ninguém mexeu no mês ainda. Aberto = o mês virou movimento, com código. Pago = o locatário pagou. O boleto e o Pix da Unicred entram na etapa seguinte.</p>`;
+    <p class="apoio">Cada mês do contrato já nasce como movimento, com número. Aberto = ainda não foi pago. Atrasado = passou do vencimento. Pago = o locatário pagou. O boleto e o Pix da Unicred entram na etapa seguinte.</p>`;
 
   caixa.querySelectorAll('[data-andar]').forEach((b) => b.addEventListener('click', () => {
     estado.de = somarMeses(estado.de, Number(b.dataset.andar));
@@ -209,7 +210,7 @@ async function detalheMes(caixa, c, estado, desenhar) {
           <div class="dado"><span class="rotulo">Total do mês</span><span class="valor t-ok"><strong>${esc(formatarMoeda(dados.projetar))}</strong></span></div>
         </div>
         <p class="apoio">As contas extras ainda não entram nesta conta: falta combinar para onde vai o dinheiro de cada uma.</p>
-        ${dados.movimento_id ? '' : '<p class="apoio">Este mês ainda é uma previsão. Quando virar movimento, ele e cada lançamento ganham número.</p>'}
+        ${dados.movimento_id ? '' : '<p class="apoio">Este mês ainda não virou movimento. Clique em "Gerar movimento" para ele e os lançamentos ganharem número.</p>'}
       </section>`
       : '<div class="card vazio">Este mês está fora do prazo do contrato.</div>'}`;
 
