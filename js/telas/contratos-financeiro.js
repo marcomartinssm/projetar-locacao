@@ -27,13 +27,10 @@ const dinheiro = (valor) => {
   const n = Number(valor) || 0;
   return `<strong class="${n < 0 ? 't-erro' : 't-ok'}">${n < 0 ? '−' : '+'} ${esc(formatarMoeda(Math.abs(n)))}</strong>`;
 };
-// no repasse o dinheiro sai da empresa, então o sinal se inverte
-const sinalDoTipo = (tipo, valor) => (tipo === 'repasse' ? -Number(valor) : Number(valor));
-
-const SELECT_MOVIMENTOS = `id, codigo, tipo, competencia, vencimento, situacao, pago_em, percentual,
-  referencia_movimento_id,
-  envolvido:cad_clientes(id, nome),
-  lancamentos:loc_lancamentos(id, codigo, tipo, descricao, valor, automatico, observacao,
+const SELECT_MOVIMENTOS = `id, codigo, competencia, vencimento, situacao, pago_em, historico, forma_recebimento,
+  repasses:loc_movimento_repasses(id, cliente_id, papel, percentual, vencimento, situacao, pago_em, forma_pagamento,
+    cliente:cad_clientes(id, nome)),
+  lancamentos:loc_lancamentos(id, codigo, tipo, descricao, valor, automatico, observacao, repasse_id, centro_custo,
     conta:loc_plano_contas(codigo, nome, cobrar_acrescimos, declara_ir))`;
 
 // ---------- tela ----------
@@ -43,6 +40,7 @@ export function renderFinanceiro(caixa, ficha) {
   desenhar();
 }
 
+
 async function listaMeses(caixa, c, estado, desenhar) {
   caixa.innerHTML = '<div class="carregando">Carregando os meses…</div>';
   const ate = somarMeses(estado.de, 11);
@@ -50,7 +48,7 @@ async function listaMeses(caixa, c, estado, desenhar) {
   const [movimentos, resumo] = await Promise.all([
     sb.from('loc_movimentos').select(SELECT_MOVIMENTOS)
       .eq('contrato_id', c.id).gte('competencia', estado.de).lte('competencia', ate)
-      .order('competencia').order('tipo', { ascending: false }),
+      .order('competencia'),
     sb.rpc('loc_financeiro_contrato', { p_contrato_id: c.id, p_de: estado.de, p_ate: ate }),
   ]);
 
@@ -63,14 +61,7 @@ async function listaMeses(caixa, c, estado, desenhar) {
 
   const hoje = hojeIso();
   const meses = resumo.data;
-  // o movimento de referência (o aluguel) vem na mesma lista: liga um no outro aqui
-  const porId = new Map(movimentos.data.map((m) => [m.id, m]));
-  const porMes = new Map();
-  for (const m of movimentos.data) {
-    m.referencia = m.referencia_movimento_id ? porId.get(m.referencia_movimento_id) ?? null : null;
-    if (!porMes.has(m.competencia)) porMes.set(m.competencia, []);
-    porMes.get(m.competencia).push(m);
-  }
+  const porMes = new Map(movimentos.data.map((m) => [m.competencia, m]));
 
   const totalReceber = meses.reduce((s, m) => s + Number(m.receber), 0);
   const totalRepassar = meses.reduce((s, m) => s + Number(m.repassar), 0);
@@ -92,7 +83,7 @@ async function listaMeses(caixa, c, estado, desenhar) {
       <span>Repasse · a pagar ao proprietário</span>
     </section>
 
-    ${meses.map((mes) => bloqueDoMes(mes, porMes.get(mes.competencia) ?? [], hoje)).join('')}`;
+    ${meses.map((mes) => cartaoMes(mes, porMes.get(mes.competencia) ?? null, hoje, c)).join('')}`;
 
   caixa.querySelectorAll('[data-andar]').forEach((b) => b.addEventListener('click', () => {
     estado.de = somarMeses(estado.de, Number(b.dataset.andar));
@@ -109,10 +100,14 @@ async function listaMeses(caixa, c, estado, desenhar) {
     desenhar();
   };
 
-  caixa.querySelectorAll('[data-pagar]').forEach((b) => b.addEventListener('click', () =>
-    acao('loc_movimento_situacao', { p_movimento_id: b.dataset.pagar, p_situacao: 'pago', p_data: null }, 'Pagamento registrado.', b)));
-  caixa.querySelectorAll('[data-desfazer]').forEach((b) => b.addEventListener('click', () =>
-    acao('loc_movimento_situacao', { p_movimento_id: b.dataset.desfazer, p_situacao: 'aberto', p_data: null }, 'Pagamento desfeito.', b)));
+  caixa.querySelectorAll('[data-receber]').forEach((b) => b.addEventListener('click', () =>
+    acao('loc_movimento_situacao', { p_movimento_id: b.dataset.receber, p_situacao: 'pago', p_data: null }, 'Recebimento registrado.', b)));
+  caixa.querySelectorAll('[data-desfazer-receber]').forEach((b) => b.addEventListener('click', () =>
+    acao('loc_movimento_situacao', { p_movimento_id: b.dataset.desfazerReceber, p_situacao: 'aberto', p_data: null }, 'Recebimento desfeito.', b)));
+  caixa.querySelectorAll('[data-repassar]').forEach((b) => b.addEventListener('click', () =>
+    acao('loc_repasse_situacao', { p_repasse_id: b.dataset.repassar, p_situacao: 'pago', p_data: null }, 'Repasse registrado.', b)));
+  caixa.querySelectorAll('[data-desfazer-repasse]').forEach((b) => b.addEventListener('click', () =>
+    acao('loc_repasse_situacao', { p_repasse_id: b.dataset.desfazerRepasse, p_situacao: 'aberto', p_data: null }, 'Repasse desfeito.', b)));
   caixa.querySelectorAll('[data-apagar]').forEach((b) => b.addEventListener('click', async () => {
     b.disabled = true;
     const { error } = await sb.from('loc_lancamentos').delete().eq('id', b.dataset.apagar);
@@ -122,68 +117,88 @@ async function listaMeses(caixa, c, estado, desenhar) {
   }));
 }
 
-// ---------- um mês: aluguel de um lado, repasses do outro ----------
-function bloqueDoMes(mes, movimentos, hoje) {
-  const aluguel = movimentos.filter((m) => m.tipo === 'aluguel');
-  const repasses = movimentos.filter((m) => m.tipo === 'repasse');
-  const fora = !mes.dentro_contrato;
+// ---------- um mês = um movimento, com os dois lados dentro ----------
+function cartaoMes(mes, mov, hoje, contrato) {
+  if (!mes.dentro_contrato || !mov) {
+    return `
+      <section class="card mes-card fora">
+        <div class="mes-topo"><strong>${esc(mesTexto(mes.competencia))}</strong>
+          <span class="t-faint">${mes.dentro_contrato ? 'sem movimento gerado' : 'fora do prazo do contrato'}</span></div>
+      </section>`;
+  }
+
+  const doLocatario = (mov.lancamentos ?? []).filter((l) => !l.repasse_id);
+  const saldoLocatario = doLocatario.reduce((s, l) => s + Number(l.valor), 0);
+  const atrasado = mov.situacao !== 'pago' && mov.vencimento < hoje;
 
   return `
-    <section class="card mes-card ${fora ? 'fora' : ''}">
+    <section class="card mes-card">
       <div class="mes-topo">
         <strong>${esc(mesTexto(mes.competencia))}</strong>
-        ${fora ? '<span class="t-faint">fora do prazo do contrato</span>' : ''}
+        <span class="t-muted">Movimento nº ${mov.codigo}</span>
+        ${mov.historico ? `<span class="t-faint">${esc(mov.historico)}</span>` : ''}
       </div>
       <div class="mes-lados">
         <div class="mes-lado">
-          ${aluguel.map((m) => cartaoMovimento(m, hoje)).join('') || '<p class="t-faint">Sem cobrança neste mês.</p>'}
+          <div class="lado-cabecalho">
+            <div>
+              <strong>${esc(contrato.locatario?.nome ?? 'Locatário')}</strong>
+              <small>Vence ${esc(formatarData(mov.vencimento))}${mov.pago_em ? ` · recebido ${esc(formatarData(mov.pago_em))}` : ''}</small>
+            </div>
+            ${dinheiro(saldoLocatario)}
+          </div>
+          <div class="mov-lancamentos">
+            ${doLocatario.sort((a, b) => a.codigo - b.codigo).map((l) => linhaLancamento(l, 1, mov.situacao === 'pago')).join('')}
+          </div>
+          <div class="mov-rodape">
+            ${mov.situacao === 'pago'
+              ? `<span class="selo-mov pago">Recebido ${esc(formatarData(mov.pago_em))}</span>
+                 <button type="button" class="link-acao" data-desfazer-receber="${mov.id}">Desfazer</button>`
+              : `<span class="selo-mov ${atrasado ? 'atraso' : 'aberto'}">${atrasado ? 'Vencido' : 'A receber'}</span>
+                 <button type="button" class="btn btn-secundario btn-peq" data-receber="${mov.id}">${icone('check', 14)}<span>Registrar recebimento</span></button>`}
+          </div>
+          <div class="forma-linha">Forma de recebimento: <strong>${mov.forma_recebimento ? esc(mov.forma_recebimento) : 'boleto e Pix entram na próxima etapa'}</strong></div>
         </div>
+
         <div class="mes-lado">
-          ${repasses.map((m) => cartaoMovimento(m, hoje)).join('') || '<p class="t-faint">Sem repasse neste mês.</p>'}
+          ${(mov.repasses ?? []).map((rep) => blocoRepasse(rep, mov, hoje)).join('') || '<p class="t-faint">Sem repasse neste mês.</p>'}
         </div>
       </div>
     </section>`;
 }
 
-function cartaoMovimento(m, hoje) {
-  const bloqueado = m.tipo === 'repasse' && m.referencia?.situacao !== 'pago';
-  const atrasado = m.situacao !== 'pago' && m.vencimento < hoje && !bloqueado;
-  const saldo = sinalDoTipo(m.tipo, (m.lancamentos ?? []).reduce((s, l) => s + Number(l.valor), 0));
-
-  const selos = [
-    m.situacao === 'pago'
-      ? `<span class="selo-mov pago">${m.tipo === 'repasse' ? 'Repassado' : 'Pago'} ${esc(formatarData(m.pago_em))}</span>`
-      : bloqueado ? '<span class="selo-mov bloq" title="Repasse bloqueado: o locatário ainda não pagou">B · bloqueado</span>'
-        : atrasado ? '<span class="selo-mov atraso">Atrasado</span>'
-          : '<span class="selo-mov aberto">Em aberto</span>',
-  ].join('');
-
-  const acoes = m.situacao === 'pago'
-    ? `<button type="button" class="link-acao" data-desfazer="${m.id}">Desfazer</button>`
-    : bloqueado ? ''
-      : `<button type="button" class="btn btn-secundario btn-peq" data-pagar="${m.id}">${icone('check', 14)}<span>${m.tipo === 'repasse' ? 'Marcar repasse' : 'Registrar pagamento'}</span></button>`;
+function blocoRepasse(rep, mov, hoje) {
+  const lancamentos = (mov.lancamentos ?? []).filter((l) => l.repasse_id === rep.id);
+  const saldo = -lancamentos.reduce((s, l) => s + Number(l.valor), 0);
+  const bloqueado = mov.situacao !== 'pago' && rep.situacao !== 'pago';
+  const atrasado = !bloqueado && rep.situacao !== 'pago' && rep.vencimento && rep.vencimento < hoje;
 
   return `
-    <div class="mov-card ${bloqueado ? 'bloqueado' : ''}">
-      <div class="mov-topo">
-        <span class="avatar pequeno">${esc(iniciais(m.envolvido?.nome ?? '?'))}</span>
-        <div class="mov-quem">
-          <strong>${esc(m.envolvido?.nome ?? 'Sem envolvido')}${m.percentual != null ? ` · ${Number(m.percentual)}%` : ''}</strong>
-          <small>Movimento nº ${m.codigo} · ${m.tipo === 'repasse' ? 'repasse' : 'vencimento'} ${esc(formatarData(m.vencimento))}${m.referencia ? ` · ligado ao nº ${m.referencia.codigo}` : ''}</small>
+    <div class="repasse-bloco ${bloqueado ? 'bloqueado' : ''}">
+      <div class="lado-cabecalho">
+        <div>
+          <strong>${esc(rep.cliente?.nome ?? 'Proprietário')}${rep.percentual != null ? ` · ${Number(rep.percentual)}%` : ''}</strong>
+          <small>Repasse ${rep.vencimento ? esc(formatarData(rep.vencimento)) : '—'}${rep.pago_em ? ` · feito ${esc(formatarData(rep.pago_em))}` : ''}</small>
         </div>
-        <span class="mov-total">${dinheiro(saldo)}</span>
+        ${dinheiro(saldo)}
       </div>
       <div class="mov-lancamentos">
-        ${(m.lancamentos ?? []).sort((a, b) => a.codigo - b.codigo).map((l) => linhaLancamento(l, m)).join('')}
+        ${lancamentos.sort((a, b) => a.codigo - b.codigo).map((l) => linhaLancamento(l, -1, rep.situacao === 'pago')).join('')}
       </div>
       <div class="mov-rodape">
-        ${selos}
-        <div class="mov-acoes">${acoes}</div>
+        ${rep.situacao === 'pago'
+          ? `<span class="selo-mov pago">Repassado ${esc(formatarData(rep.pago_em))}</span>
+             <button type="button" class="link-acao" data-desfazer-repasse="${rep.id}">Desfazer</button>`
+          : bloqueado
+            ? '<span class="selo-mov bloq" title="O locatário ainda não pagou">B · bloqueado</span>'
+            : `<span class="selo-mov ${atrasado ? 'atraso' : 'aberto'}">${atrasado ? 'Repasse atrasado' : 'Liberado'}</span>
+               <button type="button" class="btn btn-secundario btn-peq" data-repassar="${rep.id}">${icone('check', 14)}<span>Marcar repasse</span></button>`}
       </div>
+      <div class="forma-linha">Forma de pagamento: <strong>${rep.forma_pagamento ? esc(rep.forma_pagamento) : 'transferência entra na próxima etapa'}</strong></div>
     </div>`;
 }
 
-function linhaLancamento(l, m) {
+function linhaLancamento(l, sinal, travado) {
   const marcas = [
     l.conta?.cobrar_acrescimos ? '<span class="marca" title="Cobrar acréscimos: multa e juros incidem neste valor">CA</span>' : '',
     l.conta?.declara_ir ? '<span class="marca" title="Entra na declaração de imposto de renda">IR</span>' : '',
@@ -194,10 +209,10 @@ function linhaLancamento(l, m) {
       <span class="lanc-conta">${l.conta ? esc(l.conta.codigo) : '<span class="t-faint">—</span>'}</span>
       <span class="lanc-texto">
         <span>${esc(l.descricao)}${marcas}</span>
-        <small>nº ${l.codigo}${l.automatico ? '' : ' · lançado à mão'}${l.observacao ? ` · ${esc(l.observacao)}` : ''}</small>
+        <small>nº ${l.codigo} · CC ${esc(l.centro_custo ?? 'LOCAÇÃO')}${l.automatico ? '' : ' · lançado à mão'}${l.observacao ? ` · ${esc(l.observacao)}` : ''}</small>
       </span>
-      <span class="lanc-valor">${dinheiro(sinalDoTipo(m.tipo, l.valor))}</span>
-      ${!l.automatico && m.situacao !== 'pago' ? `<button type="button" class="icon-btn" data-apagar="${l.id}" aria-label="Apagar lançamento">${icone('trash', 14)}</button>` : '<span></span>'}
+      <span class="lanc-valor">${dinheiro(sinal * Number(l.valor))}</span>
+      ${!l.automatico && !travado ? `<button type="button" class="icon-btn" data-apagar="${l.id}" aria-label="Apagar lançamento">${icone('trash', 14)}</button>` : '<span></span>'}
     </div>`;
 }
 
