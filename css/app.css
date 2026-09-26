@@ -458,7 +458,15 @@ a.linha:hover { background: var(--fundo); color: var(--texto); }
 
 .mes-card { padding: 0; overflow: hidden; }
 .mes-card.fora { opacity: 0.6; }
-.mes-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 20px; background: var(--fundo); border-bottom: 1px solid var(--linha); font-size: 14px; }
+.mes-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 20px; background: var(--fundo); font-size: 14px; cursor: pointer; list-style: none; }
+.mes-topo::-webkit-details-marker { display: none; }
+details.mes-card[open] .mes-topo { border-bottom: 1px solid var(--linha); }
+details.mes-card[open] .mes-seta svg { transform: rotate(90deg); }
+.mes-seta { display: inline-flex; color: var(--vinho); transition: transform 0.15s; }
+.mes-seta svg { transition: transform 0.15s; }
+.mes-topo:hover { background: var(--vinho-palido); }
+.mes-resumo { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--apagado); }
+.mes-resumo small { color: var(--fraco); }
 .mes-lados { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mes-lado { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-width: 0; }
 .mes-lado + .mes-lado { border-left: 1px solid var(--linha); }

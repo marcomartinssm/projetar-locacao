@@ -35,7 +35,7 @@ const SELECT_MOVIMENTOS = `id, codigo, competencia, vencimento, situacao, pago_e
 
 // ---------- tela ----------
 export function renderFinanceiro(caixa, ficha) {
-  const estado = { de: mesAtual(), contas: null };
+  const estado = { de: mesAtual(), contas: null, abertos: new Set([mesAtual()]) };
   const desenhar = () => listaMeses(caixa, ficha.c, estado, desenhar);
   desenhar();
 }
@@ -74,6 +74,8 @@ async function listaMeses(caixa, c, estado, desenhar) {
       <button type="button" class="link-acao" data-hoje>Voltar para hoje</button>
       <span class="t-muted">Recebo ${dinheiro(totalReceber)} · repasso ${dinheiro(-totalRepassar)} nestes 12 meses</span>
       <div class="faixa-acoes">
+        <button type="button" class="link-acao" data-abrir-todos="sim">Abrir todos</button>
+        <button type="button" class="link-acao" data-abrir-todos="nao">Fechar todos</button>
         <button type="button" class="btn btn-secundario btn-peq" data-extra>${icone('plus', 14)}<span>Lançar conta extra</span></button>
       </div>
     </section>
@@ -83,7 +85,19 @@ async function listaMeses(caixa, c, estado, desenhar) {
       <span>Repasse · a pagar ao proprietário</span>
     </section>
 
-    ${meses.map((mes) => cartaoMes(mes, porMes.get(mes.competencia) ?? null, hoje, c)).join('')}`;
+    ${meses.map((mes) => cartaoMes(mes, porMes.get(mes.competencia) ?? null, hoje, c, estado.abertos.has(mes.competencia))).join('')}`;
+
+  caixa.querySelectorAll('details.mes-card').forEach((d) => d.addEventListener('toggle', () => {
+    if (d.open) estado.abertos.add(d.dataset.mes);
+    else estado.abertos.delete(d.dataset.mes);
+  }));
+  caixa.querySelectorAll('[data-abrir-todos]').forEach((b) => b.addEventListener('click', () => {
+    const abrir = b.dataset.abrirTodos === 'sim';
+    caixa.querySelectorAll('details.mes-card').forEach((d) => {
+      d.open = abrir;
+      if (abrir) estado.abertos.add(d.dataset.mes); else estado.abertos.delete(d.dataset.mes);
+    });
+  }));
 
   caixa.querySelectorAll('[data-andar]').forEach((b) => b.addEventListener('click', () => {
     estado.de = somarMeses(estado.de, Number(b.dataset.andar));
@@ -118,11 +132,11 @@ async function listaMeses(caixa, c, estado, desenhar) {
 }
 
 // ---------- um mês = um movimento, com os dois lados dentro ----------
-function cartaoMes(mes, mov, hoje, contrato) {
+function cartaoMes(mes, mov, hoje, contrato, aberto) {
   if (!mes.dentro_contrato || !mov) {
     return `
       <section class="card mes-card fora">
-        <div class="mes-topo"><strong>${esc(mesTexto(mes.competencia))}</strong>
+        <div class="mes-topo"><span class="mes-seta"></span><strong>${esc(mesTexto(mes.competencia))}</strong>
           <span class="t-faint">${mes.dentro_contrato ? 'sem movimento gerado' : 'fora do prazo do contrato'}</span></div>
       </section>`;
   }
@@ -130,14 +144,20 @@ function cartaoMes(mes, mov, hoje, contrato) {
   const doLocatario = (mov.lancamentos ?? []).filter((l) => !l.repasse_id);
   const saldoLocatario = doLocatario.reduce((s, l) => s + Number(l.valor), 0);
   const atrasado = mov.situacao !== 'pago' && mov.vencimento < hoje;
+  const saldoRepasses = -(mov.lancamentos ?? []).filter((l) => l.repasse_id).reduce((s, l) => s + Number(l.valor), 0);
+  const repassesPagos = (mov.repasses ?? []).length && (mov.repasses ?? []).every((r) => r.situacao === 'pago');
 
   return `
-    <section class="card mes-card">
-      <div class="mes-topo">
+    <details class="card mes-card" data-mes="${mes.competencia}" ${aberto ? 'open' : ''}>
+      <summary class="mes-topo">
+        <span class="mes-seta">${icone('chevronRight', 16)}</span>
         <strong>${esc(mesTexto(mes.competencia))}</strong>
         <span class="t-muted">Movimento nº ${mov.codigo}</span>
-        ${mov.historico ? `<span class="t-faint">${esc(mov.historico)}</span>` : ''}
-      </div>
+        <span class="mes-resumo">
+          <span>Receber ${dinheiro(saldoLocatario)} <small>${mov.situacao === 'pago' ? 'recebido' : atrasado ? 'vencido' : `vence ${esc(formatarData(mov.vencimento))}`}</small></span>
+          <span>Repassar ${dinheiro(saldoRepasses)} <small>${repassesPagos ? 'repassado' : mov.situacao === 'pago' ? 'liberado' : 'bloqueado'}</small></span>
+        </span>
+      </summary>
       <div class="mes-lados">
         <div class="mes-lado">
           <div class="lado-cabecalho">
@@ -164,7 +184,7 @@ function cartaoMes(mes, mov, hoje, contrato) {
           ${(mov.repasses ?? []).map((rep) => blocoRepasse(rep, mov, hoje)).join('') || '<p class="t-faint">Sem repasse neste mês.</p>'}
         </div>
       </div>
-    </section>`;
+    </details>`;
 }
 
 function blocoRepasse(rep, mov, hoje) {
