@@ -242,16 +242,7 @@ async function detalheMes(caixa, c, estado, desenhar) {
         ${bloco('Cobrar do locatário', 'locatario', dados.receber)}
         ${bloco('Repassar ao proprietário', 'proprietario', dados.repassar)}
       </div>
-      <section class="card secao-card">
-        <div class="secao-cabecalho"><h2 class="h-card">Fica com a Projetar</h2></div>
-        <div class="dados-grade">
-          <div class="dado"><span class="rotulo">Taxa de administração</span><span class="valor">${valorEmpresa(dados.taxa_adm)}</span></div>
-          <div class="dado"><span class="rotulo">Taxa de intermediação</span><span class="valor">${valorEmpresa(dados.intermediacao)}</span></div>
-          <div class="dado"><span class="rotulo">Total do mês</span><span class="valor">${valorEmpresa(dados.projetar)}</span></div>
-        </div>
-        <p class="apoio">As contas extras ainda não entram nesta conta: falta combinar para onde vai o dinheiro de cada uma.</p>
-        ${dados.movimento_id ? '' : '<p class="apoio">Este mês ainda não virou movimento. Clique em "Gerar movimento" para ele e os lançamentos ganharem número.</p>'}
-      </section>`
+      ${dados.movimento_id ? '' : '<section class="card secao-card"><p class="apoio">Este mês ainda não virou movimento. Clique em "Gerar movimento" para ele e os lançamentos ganharem número.</p></section>'}`
       : '<div class="card vazio">Este mês está fora do prazo do contrato.</div>'}`;
 
   caixa.querySelector('[data-voltar]').addEventListener('click', voltar);
