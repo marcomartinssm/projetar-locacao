@@ -3,6 +3,7 @@
 //        #/imoveis  · #/imoveis/novo  · #/imoveis/<id>/<aba>
 //        #/negociacoes · #/negociacoes/novo[?imovel=<id>] · #/negociacoes/<id>/<aba>
 //        #/negociacoes/<id>/contrato (gerar) · #/contratos · #/contratos/<id>/<aba>
+//        #/config/contas (contas da imobiliária)
 
 import { sb } from './supabase.js';
 import { esc, icone, iniciais } from './util.js';
@@ -18,6 +19,7 @@ import { telaNegociacaoFicha } from './telas/negociacoes-ficha.js';
 import { telaContratosLista } from './telas/contratos-lista.js';
 import { telaContratoFicha } from './telas/contratos-ficha.js';
 import { telaContratoGerar } from './telas/contratos-gerar.js';
+import { telaContasEmpresa } from './telas/config-contas-empresa.js';
 
 const app = document.getElementById('app');
 let sessao = null;
@@ -29,6 +31,7 @@ const MENU = [
   ['Negociações', 'handshake', '#/negociacoes'],
   ['Contratos', 'contract', '#/contratos'],
   ['Financeiro', 'wallet', null],
+  ['Configurações', 'gear', '#/config/contas'],
 ];
 
 const marca = `
@@ -159,6 +162,13 @@ function rotear() {
     if (ficha) return telaContratoFicha(conteudo, ficha[1], ficha[2] || 'resumo');
     if (hash !== '#/contratos') history.replaceState(null, '', '#/contratos');
     return telaContratosLista(conteudo);
+  }
+
+  if (hash.startsWith('#/config')) {
+    const conteudo = montarLayout('Configurações');
+    window.scrollTo(0, 0);
+    if (hash !== '#/config/contas') history.replaceState(null, '', '#/config/contas');
+    return telaContasEmpresa(conteudo);
   }
 
   const conteudo = montarLayout('Clientes');

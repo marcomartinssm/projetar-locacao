@@ -30,6 +30,8 @@ const TABELAS = {
   loc_contratos_proprietarios: 'Proprietário do contrato',
   loc_movimentos: 'Movimento do mês',
   loc_lancamentos: 'Lançamento',
+  loc_cobrancas: 'Cobrança (boleto/Pix)',
+  cad_contas_empresa: 'Conta da imobiliária',
 };
 
 const ACOES = {
@@ -42,6 +44,18 @@ const ACOES = {
 };
 
 const CAMPOS = {
+  forma_recebimento: 'Forma de recebimento', forma_pagamento: 'Forma de pagamento',
+  conta_empresa_id: 'Conta da imobiliária', conta_bancaria_id: 'Conta do proprietário',
+  valor_pago: 'Valor recebido', comprovante_path: 'Comprovante',
+  linha_digitavel: 'Linha digitável', codigo_barras: 'Código de barras', nosso_numero: 'Nosso número',
+  pix_txid: 'Identificador do Pix', pix_copia_cola: 'Pix copia e cola',
+  url_boleto: 'Link do boleto', enviada_em: 'Enviada em', enviada_como: 'Enviada por',
+  enviada_para: 'Enviada para',
+  recebe_aluguel: 'Recebe o aluguel', paga_repasse: 'Paga o repasse',
+  cobranca_convenio: 'Convênio de cobrança', cobranca_carteira: 'Carteira', cobranca_variacao: 'Variação',
+  cobranca_nosso_numero: 'Último nosso número', cobranca_dias_baixa: 'Dias para baixa',
+  cobranca_instrucoes: 'Instruções do boleto', api_provedor: 'Banco da integração',
+  api_ambiente: 'Ambiente da API', api_ativa: 'API ligada', api_observacao: 'Anotações da integração',
   nome: 'Nome', nome_fantasia: 'Nome fantasia', cpf_cnpj: 'CPF/CNPJ', tipo_pessoa: 'Tipo de pessoa',
   rg: 'RG', rg_orgao_emissor: 'Órgão emissor', rg_uf: 'UF do RG', data_nascimento: 'Data de nascimento',
   nacionalidade: 'Nacionalidade', estado_civil: 'Estado civil', profissao: 'Profissão',
@@ -95,7 +109,14 @@ const VALORES = {
   intermediacao_forma: Object.fromEntries(FORMAS_INTERMEDIACAO),
   repasse_tipo: { dia_fixo: 'Fixo, todo mês', apos_recebimento: 'Após o recebimento' },
   lado: { locatario: 'Locatário', proprietario: 'Proprietário' },
-  tipo: { aluguel: 'Aluguel', taxa_administracao: 'Taxa de administração', taxa_intermediacao: 'Taxa de intermediação', conta_extra: 'Conta extra', ajuste: 'Ajuste' },
+  tipo: { aluguel: 'Aluguel', taxa_administracao: 'Taxa de administração', taxa_intermediacao: 'Taxa de intermediação',
+    conta_extra: 'Conta extra', ajuste: 'Ajuste', multa: 'Multa por atraso', juros: 'Juros de mora',
+    correcao: 'Correção monetária', taxa_adm_multa: 'Taxa de adm sobre a multa', taxa_adm_juros: 'Taxa de adm sobre os juros',
+    boleto: 'Boleto', pix: 'Pix', boleto_pix: 'Boleto com Pix' },
+  origem: { manual: 'Emitida no banco e colada aqui', api: 'Emitida pela API do banco' },
+  tipo_conta: { corrente: 'Conta corrente', poupanca: 'Poupança', pagamento: 'Conta de pagamento' },
+  pix_tipo: { cpf_cnpj: 'CPF/CNPJ', email: 'E-mail', telefone: 'Telefone', aleatoria: 'Chave aleatória' },
+  api_ambiente: { homologacao: 'Teste (homologação)', producao: 'Valendo (produção)' },
   garantia_tipo: Object.fromEntries(GARANTIAS),
   papel: { solidario: 'Locatário solidário', fiador: 'Fiador' },
 };

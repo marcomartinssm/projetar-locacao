@@ -512,3 +512,100 @@ details.mes-card[open] .mes-seta svg { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---------- cobrança (boleto e Pix) dentro do movimento ---------- */
+.cobranca-bloco {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--borda);
+  display: grid;
+  gap: 6px;
+}
+.cobranca-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--vinho);
+}
+.cobranca-topo .link-acao { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.cobranca-linha {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--vinho-palido);
+}
+.cobranca-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--vinho-escuro);
+}
+.cobranca-info { display: grid; gap: 1px; font-size: .84rem; }
+.cobranca-info small { color: var(--apagado); font-size: .74rem; }
+.cobranca-acoes {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(160, 73, 106, .12);
+}
+
+/* ---------- dados prontos para copiar (repasse) ---------- */
+.copiar-bloco {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--vinho-palido);
+}
+.copiar-bloco strong { display: block; font-size: .82rem; margin-bottom: 4px; }
+.copiar-bloco pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: .84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ---------- contas da imobiliária ---------- */
+.conta-empresa { display: grid; gap: 12px; }
+.conta-empresa.inativa { opacity: .6; }
+.conta-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.conta-topo small { display: block; color: var(--apagado); font-size: .82rem; }
+.conta-marcas { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.marcas-conta { display: grid; gap: 6px; margin: 4px 0; }
+.bloco-tecnico {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--fundo);
+}
+.bloco-tecnico > summary { cursor: pointer; font-weight: 600; font-size: .9rem; color: var(--vinho); }
+.bloco-tecnico > summary::marker { color: var(--vinho-claro); }
+.bloco-tecnico[open] > summary { margin-bottom: 10px; }
+.aviso-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: .84rem;
+  color: var(--vinho-escuro);
+}
+
+@media (max-width: 720px) {
+  .cobranca-linha { grid-template-columns: 1fr; }
+  .copiar-bloco { flex-direction: column; }
+}

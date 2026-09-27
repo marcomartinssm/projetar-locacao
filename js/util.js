@@ -198,6 +198,12 @@ const ICONES = {
   arrowUpRight: '<path d="M7 17L17 7"></path><path d="M8 7h9v9"></path>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"></path>',
   alert: '<path d="M12 3.5l9.5 16.5h-19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path>',
+  gear: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path>',
+  qr: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3z"></path><path d="M20 14v3"></path><path d="M14 20h7"></path>',
+  barcode: '<path d="M4 6v12"></path><path d="M7 6v12"></path><path d="M10 6v12"></path><path d="M14 6v12"></path><path d="M17 6v12"></path><path d="M20 6v12"></path>',
+  bank: '<path d="M3 10l9-6 9 6"></path><path d="M5 10v9"></path><path d="M19 10v9"></path><path d="M3 19h18"></path><path d="M9 19v-5h6v5"></path>',
+  handshake: '<path d="M12 8l-2-2a2 2 0 0 0-3 0L3 10l5 5"></path><path d="M12 8l2-2a2 2 0 0 1 3 0l4 4-5 5"></path><path d="M8 15l3 3 2-2 3 3"></path>',
 };
 
 export const icone = (nome, tamanho = 16) =>
